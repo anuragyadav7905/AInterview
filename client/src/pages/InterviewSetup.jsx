@@ -45,9 +45,9 @@ const InterviewSetup = () => {
             style={{
                 padding: '10px 16px',
                 borderRadius: 'var(--radius-sm)',
-                border: active ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
-                background: active ? 'rgba(0, 229, 255, 0.1)' : 'transparent',
-                color: active ? 'var(--primary)' : 'var(--text-muted)',
+                border: active ? '1px solid var(--primary)' : '1px solid var(--outline-variant)',
+                background: active ? 'rgba(224, 142, 254, 0.1)' : 'transparent',
+                color: active ? 'var(--primary)' : 'var(--on-surface-variant)',
                 fontWeight: active ? '600' : '400',
                 cursor: 'pointer',
                 flex: 1,
@@ -62,14 +62,14 @@ const InterviewSetup = () => {
     return (
         <div className="flex-center fade-in" style={{ minHeight: '80vh' }}>
             <Card title="Configure Session" style={{ maxWidth: '600px', width: '100%' }}>
-                <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>
+                <p style={{ color: 'var(--on-surface-variant)', marginBottom: '30px' }}>
                     Customize your mock interview environment. The AI will adapt questions based on your resume and these settings.
                 </p>
 
                 <form onSubmit={handleSubmit}>
                     {/* Role Selection */}
                     <div style={{ marginBottom: '25px' }}>
-                        <label className="text-gradient" style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Target Role</label>
+                        <label className="display-md" style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block' }}>Target Role</label>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                             {roles.map(r => (
                                 <SelectButton key={r} active={role === r} onClick={() => setRole(r)}>
@@ -81,7 +81,7 @@ const InterviewSetup = () => {
 
                     {/* Difficulty Selection */}
                     <div style={{ marginBottom: '25px' }}>
-                        <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block', color: 'var(--text-main)' }}>Difficulty Level</label>
+                        <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block', color: 'var(--on-surface)' }}>Difficulty Level</label>
                         <div style={{ display: 'flex', gap: '10px' }}>
                             {difficulties.map(d => (
                                 <SelectButton key={d} active={difficulty === d} onClick={() => setDifficulty(d)}>
@@ -93,15 +93,15 @@ const InterviewSetup = () => {
 
                     {/* Style Selection */}
                     <div style={{ marginBottom: '30px' }}>
-                        <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block', color: 'var(--text-main)' }}>Interviewer Persona</label>
+                        <label style={{ fontWeight: 'bold', marginBottom: '10px', display: 'block', color: 'var(--on-surface)' }}>Interviewer Persona</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                             {styles.map(s => (
                                 <div
                                     key={s.name}
                                     onClick={() => setStyle(s.name)}
                                     style={{
-                                        border: style === s.name ? '1px solid var(--secondary)' : '1px solid var(--glass-border)',
-                                        background: style === s.name ? 'rgba(217, 70, 239, 0.1)' : 'transparent',
+                                        border: style === s.name ? '1px solid var(--secondary)' : '1px solid var(--outline-variant)',
+                                        background: style === s.name ? 'rgba(137, 149, 255, 0.1)' : 'transparent',
                                         padding: '15px',
                                         borderRadius: 'var(--radius-sm)',
                                         cursor: 'pointer',
@@ -110,8 +110,8 @@ const InterviewSetup = () => {
                                     }}
                                 >
                                     <div style={{ fontSize: '1.5rem', marginBottom: '5px' }}>{s.icon}</div>
-                                    <div style={{ fontWeight: 'bold', color: style === s.name ? 'var(--secondary)' : 'var(--text-main)' }}>{s.name}</div>
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{s.desc}</div>
+                                    <div style={{ fontWeight: 'bold', color: style === s.name ? 'var(--secondary)' : 'var(--on-surface)' }}>{s.name}</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--on-surface-variant)' }}>{s.desc}</div>
                                 </div>
                             ))}
                         </div>

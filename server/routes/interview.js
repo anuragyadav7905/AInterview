@@ -410,6 +410,28 @@ router.get('/weakness', protect, async (req, res) => {
     }
 });
 
+// @desc    Get Interview Details
+// @route   GET /api/interview/:id
+// @access  Private
+router.get('/:id', protect, async (req, res) => {
+    try {
+        const interview = await Interview.findById(req.params.id);
+        if (!interview) {
+            return res.status(404).json({ message: 'Interview not found' });
+        }
+        // Verify user owns this interview
+        if (interview.user.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        res.json(interview);
+    } catch (error) {
+        if (error.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'Interview not found' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+});
+
 module.exports = router;
 
 // Configure Multer for Audio

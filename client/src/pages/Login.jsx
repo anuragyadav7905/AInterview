@@ -27,11 +27,11 @@ const Login = () => {
     };
 
     return (
-        <div className="flex-center" style={{ minHeight: '100vh', background: 'var(--bg-darker)' }}>
+        <div className="flex-center" style={{ minHeight: '100vh', background: 'var(--surface)' }}>
             <Card className="glass-card fade-in" style={{ width: '400px', borderTop: '4px solid var(--primary)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    <h1 className="text-gradient" style={{ fontSize: '2rem' }}>AI Prep Pro</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>Sign in to continue</p>
+                    <h1 className="display-md" style={{ fontSize: '2rem' }}>AInterview</h1>
+                    <p style={{ color: 'var(--on-surface-variant)' }}>Sign in to continue</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -40,11 +40,14 @@ const Login = () => {
                         <input type="email" name="email" value={credentials.email} onChange={handleChange} required placeholder="you@example.com" />
                     </div>
                     <div style={{ marginBottom: '20px' }}>
-                        <label>Password</label>
+                        <div className="flex-between" style={{ marginBottom: '5px' }}>
+                            <label style={{ margin: 0 }}>Password</label>
+                            <Link to="/forgot-password" style={{ color: 'var(--primary)', textDecoration: 'none', fontSize: '0.85rem' }}>Forgot password?</Link>
+                        </div>
                         <input type="password" name="password" value={credentials.password} onChange={handleChange} required placeholder="••••••••" />
                     </div>
 
-                    {error && <div style={{ color: 'var(--danger)', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
+                    {error && <div style={{ color: 'var(--tertiary)', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
 
                     <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%' }}>
                         {loading ? 'Authenticating...' : 'Login'}
@@ -52,7 +55,7 @@ const Login = () => {
                 </form>
 
                 <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>New here? </span>
+                    <span style={{ color: 'var(--on-surface-variant)' }}>New here? </span>
                     <Link to="/signup" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Create Account</Link>
                 </div>
             </Card>

@@ -27,11 +27,11 @@ const Signup = () => {
     };
 
     return (
-        <div className="flex-center" style={{ minHeight: '100vh', background: 'var(--bg-darker)' }}>
+        <div className="flex-center" style={{ minHeight: '100vh', background: 'var(--surface)' }}>
             <Card className="glass-card fade-in" style={{ width: '400px', borderTop: '4px solid var(--secondary)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    <h1 className="text-gradient" style={{ fontSize: '2rem' }}>Join AI Prep</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>Start your journey today</p>
+                    <h1 className="display-md" style={{ fontSize: '2rem' }}>Join AI Prep</h1>
+                    <p style={{ color: 'var(--on-surface-variant)' }}>Start your journey today</p>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -48,7 +48,7 @@ const Signup = () => {
                         <input type="password" name="password" value={formData.password} onChange={handleChange} required placeholder="••••••••" />
                     </div>
 
-                    {error && <div style={{ color: 'var(--danger)', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
+                    {error && <div style={{ color: 'var(--tertiary)', marginBottom: '15px', fontSize: '0.9rem' }}>{error}</div>}
 
                     <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%' }}>
                         {loading ? 'Creating Account...' : 'Sign Up'}
@@ -56,7 +56,7 @@ const Signup = () => {
                 </form>
 
                 <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Already have an account? </span>
+                    <span style={{ color: 'var(--on-surface-variant)' }}>Already have an account? </span>
                     <Link to="/login" style={{ color: 'var(--secondary)', textDecoration: 'none' }}>Login</Link>
                 </div>
             </Card>

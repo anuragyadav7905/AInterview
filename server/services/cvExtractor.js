@@ -9,7 +9,8 @@ const extractText = async (filePath) => {
     try {
         if (ext === '.pdf') {
             const dataBuffer = fs.readFileSync(filePath);
-            const data = await pdf(dataBuffer);
+            const parseFn = typeof pdf === 'function' ? pdf : (pdf.default || pdf.pdf);
+            const data = await parseFn(dataBuffer);
             return data.text;
         } else if (ext === '.docx' || ext === '.doc') {
             // Note: mammoth works best with docx. .doc binary format is harder, but we'll try mammoth for docx.

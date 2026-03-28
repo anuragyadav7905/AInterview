@@ -1,0 +1,8 @@
+User not found. Creating user...
+User created: {
+  username: 'TestUser999_1771866671299',
+  email: 'test@example.com',
+  password: '$2a$10$BlugCGQGgKGRgd8CHnTe1.1T3emEeo8eK1tSXpysUD2pAWVjLnqbK',
+  _id: new ObjectId("699c8a2fdc5102fe112d06b2"),
+  __v: 0
+}

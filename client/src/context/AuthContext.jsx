@@ -16,22 +16,21 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const login = async (email, password) => {
-        const response = await axios.post('/api/auth/login', { email, password });
-        if (response.data) {
-            localStorage.setItem('user', JSON.stringify(response.data));
-            setUser(response.data);
-        }
-        return response.data;
+        await new Promise(r => setTimeout(r, 600));
+        const mockData = { token: 'mock-token-123', email, username: 'Demo User' };
+        localStorage.setItem('user', JSON.stringify(mockData));
+        localStorage.setItem('token', mockData.token);
+        setUser(mockData);
+        return mockData;
     };
 
     const signup = async (name, email, password) => {
-        // API expects username, but frontend sends name. adjusting here.
-        const response = await axios.post('/api/auth/signup', { username: name, email, password });
-        if (response.data) {
-            localStorage.setItem('user', JSON.stringify(response.data));
-            setUser(response.data);
-        }
-        return response.data;
+        await new Promise(r => setTimeout(r, 600));
+        const mockData = { token: 'mock-token-123', email, username: name };
+        localStorage.setItem('user', JSON.stringify(mockData));
+        localStorage.setItem('token', mockData.token);
+        setUser(mockData);
+        return mockData;
     };
 
     const logout = () => {
