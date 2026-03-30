@@ -9,6 +9,9 @@ const { generateInterviewQuestion, evaluateAnswer, transcribeWithGemini } = requ
 
 const router = express.Router();
 
+// Memory storage multer for audio uploads
+const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
 // @desc    Start new interview
 // @route   POST /api/interview/start
 // @access  Private
@@ -161,6 +164,40 @@ router.get('/:id/summary', protect, async (req, res) => {
             }
         });
 
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @desc    Transcribe audio using Gemini
+// @route   POST /api/interview/transcribe
+// @access  Private
+router.post('/transcribe', protect, audioUpload.single('audio'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ message: 'No audio file provided' });
+    }
+    try {
+        const audioBase64 = req.file.buffer.toString('base64');
+        const mimeType = req.file.mimetype || 'audio/webm';
+        const transcript = await transcribeWithGemini(audioBase64, mimeType);
+        res.json({ transcript });
+    } catch (error) {
+        res.status(500).json({ message: 'Transcription failed', error: error.message });
+    }
+});
+
+// @desc    Mark interview as completed
+// @route   POST /api/interview/:id/complete
+// @access  Private
+router.post('/:id/complete', protect, async (req, res) => {
+    try {
+        const interview = await Interview.findOneAndUpdate(
+            { _id: req.params.id, user: req.user._id },
+            { status: 'completed' },
+            { new: true }
+        );
+        if (!interview) return res.status(404).json({ message: 'Interview not found' });
+        res.json({ message: 'Interview completed', interview });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 const InterviewRoom = () => {
+    const { id } = useParams();
     const navigate = useNavigate();
 
     // Core states
@@ -117,10 +118,16 @@ const InterviewRoom = () => {
 
         // Terminate path if we hit max questions
         if (questionCount >= MAX_QUESTIONS - 1) {
-            setTimeout(() => {
-                navigate(`/summary/${interviewId || 'latest'}`);
-            }, 3000);
             addMessage('ai', "Thank you for your time. That concludes our interview. Please wait while I generate your final summary report...");
+            const token = localStorage.getItem('token');
+            if (interviewId && !interviewId.startsWith('mock_')) {
+                axios.post(`/api/interview/${interviewId}/complete`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }).catch(e => console.error('Could not mark interview complete', e));
+            }
+            setTimeout(() => {
+                navigate(`/summary/${interviewId || id || 'latest'}`);
+            }, 3000);
             return;
         }
 
@@ -195,20 +202,29 @@ const InterviewRoom = () => {
                     if (e.data.size > 0) chunksRef.current.push(e.data);
                 };
 
-                mediaRecorderRef.current.onstop = () => {
+                mediaRecorderRef.current.onstop = async () => {
                     const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
                     chunksRef.current = [];
                     stream.getTracks().forEach(track => track.stop());
-                    
+
                     if (audioContextRef.current?.state !== 'closed') {
                         audioContextRef.current.close().catch(e => console.error(e));
                     }
 
-                    // Process blob here (simulate api transcription)
-                    setTimeout(() => {
+                    try {
+                        const token = localStorage.getItem('token');
+                        const formData = new FormData();
+                        formData.append('audio', blob, 'recording.webm');
+                        const res = await axios.post('/api/interview/transcribe', formData, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
                         setIsProcessingVoice(false);
-                        handleUserSubmit("This is a transcribed voice answer demonstrating my communication skills and technical knowledge.");
-                    }, 1500);
+                        handleUserSubmit(res.data.transcript);
+                    } catch (err) {
+                        console.error('Transcription failed', err);
+                        setIsProcessingVoice(false);
+                        alert('Voice transcription failed. Please switch to text mode and type your answer.');
+                    }
                 };
 
                 mediaRecorderRef.current.start();
@@ -222,7 +238,7 @@ const InterviewRoom = () => {
 
     const handleEndInterview = () => {
         if (window.confirm("Are you sure you want to end the interview early?")) {
-            navigate(`/summary/${interviewId || 'latest'}`);
+            navigate(`/summary/${interviewId || id || 'latest'}`);
         }
     };
 

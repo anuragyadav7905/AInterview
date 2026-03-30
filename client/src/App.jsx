@@ -32,6 +32,7 @@ function App() {
                     <Route element={<ProtectedRoute />}>
                         <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
                         <Route path="/interview-setup" element={<Layout><InterviewSetup /></Layout>} />
+                        <Route path="/interview/new" element={<InterviewRoom />} />
                         <Route path="/interview/:id" element={<InterviewRoom />} />
                         <Route path="/summary/:id" element={<Layout><InterviewSummary /></Layout>} />
                         <Route path="/history" element={<Layout><History /></Layout>} />

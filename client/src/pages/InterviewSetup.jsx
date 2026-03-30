@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/Card';
 import CVUpload from '../components/CVUpload';
@@ -15,13 +14,13 @@ const InterviewSetup = () => {
         
         // Let the user see the success state of the CV component briefly before navigating
         setTimeout(() => {
-            navigate('/interview/chat');
+            navigate('/interview/new');
         }, 1500);
     };
 
     const handleContinueWithoutResume = () => {
         localStorage.removeItem('cvId'); // Ensure no CV is lingering
-        navigate('/interview/chat');
+        navigate('/interview/new');
     };
 
     return (
