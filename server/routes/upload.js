@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const CV = require('../models/CV');
 const Interview = require('../models/Interview'); // Added
 const Question = require('../models/Question'); // Added
@@ -117,16 +118,18 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
             text = await extractText(req.file.path);
         } catch (err) {
             console.error('Extraction Error:', err);
-            // Continue even if extraction fails (store file path at least)
         }
+
+        // Delete file from disk after extraction — text is stored in DB
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
 
         // Structure Data (Gemini-powered async parser)
         const structuredData = await parseCV(text);
 
         const cv = await CV.create({
             user: req.user._id,
-            fileName: req.file.originalname, // Maps to schema: fileName
-            filePath: req.file.path,         // Maps to schema: filePath
+            fileName: req.file.originalname,
+            filePath: null,
             extractedText: text,
             structuredData
         });

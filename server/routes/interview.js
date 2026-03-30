@@ -1,6 +1,5 @@
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const Interview = require('../models/Interview');
 const Question = require('../models/Question');
 const CV = require('../models/CV');
@@ -49,7 +48,7 @@ router.post('/start', protect, async (req, res) => {
 // @access  Private
 router.post('/:id/questions', protect, async (req, res) => {
     try {
-        const interview = await Interview.findById(req.params.id).populate('cv');
+        const interview = await Interview.findOne({ _id: req.params.id, user: req.user._id }).populate('cv');
         if (!interview) {
             return res.status(404).json({ message: 'Interview not found' });
         }
@@ -141,7 +140,7 @@ router.post('/evaluate', protect, async (req, res) => {
 // @access  Private
 router.get('/:id/summary', protect, async (req, res) => {
     try {
-        const interview = await Interview.findById(req.params.id);
+        const interview = await Interview.findOne({ _id: req.params.id, user: req.user._id });
         if (!interview) {
             return res.status(404).json({ message: 'Interview not found' });
         }
