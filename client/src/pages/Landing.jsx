@@ -28,8 +28,18 @@ const Landing = () => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '30px', alignItems: 'center', fontSize: '0.9rem', color: '#A0AAB2' }}>
-                    <span style={{ color: '#FFF', borderBottom: '2px solid #E08EFE', paddingBottom: '5px', cursor: 'pointer' }}>Product</span>
-                    <Link to="/pricing" style={{ color: 'inherit', textDecoration: 'none', transition: '0.2s' }} className="nav-hover">Pricing</Link>
+                    <Link to="/login" style={{ color: 'inherit', textDecoration: 'none', transition: '0.2s', fontWeight: 'bold' }}>Log In</Link>
+                    <Link to="/signup" style={{ textDecoration: 'none' }}>
+                        <button style={{
+                            padding: '10px 24px',
+                            background: 'var(--primary)',
+                            color: '#000',
+                            border: 'none',
+                            borderRadius: '20px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                        }}>Sign Up</button>
+                    </Link>
                 </div>
 
 
@@ -141,78 +151,55 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* Media/Mockup Section */}
+            {/* Chat Mockup Section */}
             <section style={{
                 display: 'flex',
                 justifyContent: 'center',
-                gap: '20px',
                 padding: '40px 20px 80px 20px',
-                maxWidth: '1000px',
+                maxWidth: '800px',
                 width: '100%',
                 margin: '0 auto',
                 zIndex: 1
             }}>
                 <div style={{
-                    flex: 2,
-                    background: 'url("https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=800&auto=format&fit=crop")',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    height: '350px',
-                    borderRadius: '20px',
-                    position: 'relative',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
-                }}>
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '20px',
-                        left: '20px',
-                        background: 'rgba(0,0,0,0.7)',
-                        backdropFilter: 'blur(10px)',
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '0.8rem',
-                        border: '1px solid rgba(255,255,255,0.1)'
-                    }}>
-                        <div style={{ width: '8px', height: '8px', background: '#FF4757', borderRadius: '50%' }} />
-                        Live AI Feedback Engine
-                    </div>
-                </div>
-
-                <div style={{
-                    flex: 1,
+                    width: '100%',
                     background: '#1A1D27',
                     borderRadius: '20px',
-                    padding: '30px',
+                    padding: '40px',
                     border: '1px solid rgba(255,255,255,0.05)',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between'
+                    gap: '20px',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
                 }}>
-                    <div>
-                        <h3 style={{ fontSize: '1.2rem', marginBottom: '20px' }}>Skill Matrix</h3>
-                        <div style={{ height: '6px', width: '100%', background: '#2D3243', borderRadius: '3px', marginBottom: '15px' }}>
-                            <div style={{ height: '100%', width: '85%', background: '#E08EFE', borderRadius: '3px' }} />
-                        </div>
-                        <div style={{ height: '6px', width: '100%', background: '#2D3243', borderRadius: '3px', marginBottom: '15px' }}>
-                            <div style={{ height: '100%', width: '60%', background: '#7C4DFF', borderRadius: '3px' }} />
-                        </div>
-                        <div style={{ height: '6px', width: '100%', background: '#2D3243', borderRadius: '3px', marginBottom: '15px' }}>
-                            <div style={{ height: '100%', width: '90%', background: '#FF758F', borderRadius: '3px' }} />
-                        </div>
-                    </div>
-
-                    <p style={{
-                        color: '#A0AAB2',
-                        fontSize: '0.85rem',
-                        fontStyle: 'italic',
+                    {/* AI Chat Bubble */}
+                    <div style={{
+                        alignSelf: 'flex-start',
+                        background: 'linear-gradient(135deg, rgba(224,142,254,0.15), rgba(137,149,255,0.15))',
+                        border: '1px solid rgba(224,142,254,0.3)',
+                        borderRadius: '20px 20px 20px 4px',
+                        padding: '16px 24px',
+                        color: '#E08EFE',
+                        maxWidth: '80%',
+                        fontSize: '1rem',
                         lineHeight: '1.5'
                     }}>
-                        "Our users report a 40% higher success rate in technical rounds after practicing with our behavioral AI."
-                    </p>
+                        "That's a great summary of your experience. Can you describe a time you had to optimize a slow-performing database query?"
+                    </div>
+                    {/* User Chat Bubble */}
+                    <div style={{
+                        alignSelf: 'flex-end',
+                        background: '#2A2E3D',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        borderRadius: '20px 20px 4px 20px',
+                        padding: '16px 24px',
+                        color: '#fff',
+                        maxWidth: '80%',
+                        fontSize: '1rem',
+                        lineHeight: '1.5'
+                    }}>
+                        "Yes, in my last role, we had a massive bottleneck in our inventory aggregation. I identified the missing composite index and shaved execution time down by 80%."
+                    </div>
                 </div>
             </section>
 
@@ -364,22 +351,7 @@ const Landing = () => {
                         <span style={{ color: '#A0AAB2', fontSize: '0.9rem' }}>No credit card required.</span>
                     </div>
 
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: '40px',
-                        opacity: '0.4',
-                        fontSize: '1.2rem',
-                        fontWeight: 'bold',
-                        letterSpacing: '2px',
-                        color: '#FFF',
-                        flexWrap: 'wrap'
-                    }}>
-                        <span>FAANG</span>
-                        <span>STRIPE</span>
-                        <span>OPENAI</span>
-                        <span>TESLA</span>
-                    </div>
+
                 </div>
             </section>
 

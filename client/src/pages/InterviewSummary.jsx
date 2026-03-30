@@ -215,7 +215,7 @@ AI Feedback: ${q.feedback}
                                             </div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{ border: \`1px solid \${scoreColor}\`, color: scoreColor, padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: \`\${scoreColor}10\` }}>
+                                            <span style={{ border: `1px solid ${scoreColor}`, color: scoreColor, padding: '4px 10px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', background: `${scoreColor}10` }}>
                                                 Score: {score}/10
                                             </span>
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a8abb3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>

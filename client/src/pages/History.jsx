@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const History = () => {
+    const navigate = useNavigate();
+
     return (
         <div style={{ backgroundColor: '#0a0e14', color: '#f1f3fc', paddingBottom: '3rem', fontFamily: 'var(--font-body)' }}>
             
@@ -17,40 +20,6 @@ const History = () => {
                     <p style={{ color: '#a8abb3', fontSize: '1rem', margin: 0 }}>
                         Review your past performance and track your growth trajectory.
                     </p>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button style={{
-                        background: '#1c1f26',
-                        color: '#a8abb3',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        padding: '10px 20px',
-                        borderRadius: '20px',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                        FILTER
-                    </button>
-                    <button style={{
-                        background: '#1c1f26',
-                        color: '#a8abb3',
-                        border: '1px solid rgba(255,255,255,0.05)',
-                        padding: '10px 20px',
-                        borderRadius: '20px',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        cursor: 'pointer'
-                    }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        EXPORT
-                    </button>
                 </div>
             </div>
 
@@ -82,7 +51,7 @@ const History = () => {
                                 <span style={{ color: '#b899fd', fontWeight: 'bold', fontSize: '1rem' }}>88%</span>
                             </div>
                         </div>
-                        <div style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <div onClick={() => navigate('/summary/1')} style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#2c3140'} onMouseOut={(e) => e.currentTarget.style.background = '#222631'}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8abb3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </div>
                     </div>
@@ -113,7 +82,7 @@ const History = () => {
                                 <span style={{ color: '#ff709b', fontWeight: 'bold', fontSize: '1rem' }}>94%</span>
                             </div>
                         </div>
-                        <div style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <div onClick={() => navigate('/summary/2')} style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#2c3140'} onMouseOut={(e) => e.currentTarget.style.background = '#222631'}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8abb3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </div>
                     </div>
@@ -144,82 +113,12 @@ const History = () => {
                                 <span style={{ color: '#8995ff', fontWeight: 'bold', fontSize: '1rem' }}>76%</span>
                             </div>
                         </div>
-                        <div style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                        <div onClick={() => navigate('/summary/3')} style={{ background: '#222631', width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#2c3140'} onMouseOut={(e) => e.currentTarget.style.background = '#222631'}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a8abb3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                         </div>
                     </div>
                 </div>
 
-            </div>
-
-            {/* Bottom Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '4rem' }}>
-                
-                {/* Progress Chart */}
-                <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem' }}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8995ff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                        <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>Progress Over Time</h2>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flex: 1, height: '180px', paddingTop: '20px' }}>
-                        {/* Bars */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '30%', background: '#232631', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: '#a8abb3', fontWeight: 'bold', letterSpacing: '1px' }}>AUG</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '45%', background: '#232631', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: 'transparent' }}>-</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '40%', background: '#232631', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: 'transparent' }}>-</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '60%', background: '#232631', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: '#a8abb3', fontWeight: 'bold', letterSpacing: '1px' }}>SEP</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '55%', background: '#232631', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: 'transparent' }}>-</span>
-                        </div>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, #e08efe, #8995ff)', borderRadius: '6px' }}></div>
-                            <span style={{ fontSize: '0.65rem', color: '#a8abb3', fontWeight: 'bold', letterSpacing: '1px' }}>OCT (CURRENT)</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Stats */}
-                <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <div style={{ fontSize: '3.5rem', fontWeight: 'bold', color: '#ff709b', lineHeight: '1' }}>12</div>
-                        <div style={{ fontSize: '0.65rem', color: '#a8abb3', fontWeight: 'bold', letterSpacing: '1px', marginTop: '0.5rem' }}>TOTAL SESSIONS</div>
-                    </div>
-                    
-                    <div style={{ width: '80%', height: '1px', background: 'rgba(255,255,255,0.05)', marginBottom: '1.5rem' }}></div>
-                    
-                    <div>
-                        <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'white', lineHeight: '1' }}>84.2</div>
-                        <div style={{ fontSize: '0.65rem', color: '#a8abb3', fontWeight: 'bold', letterSpacing: '1px', marginTop: '0.5rem' }}>AVG CONFIDENCE SCORE</div>
-                    </div>
-                </div>
-
-            </div>
-
-            {/* Footer */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h2 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>AInterview AI</h2>
-                    <p style={{ color: '#a8abb3', fontSize: '0.8rem', margin: 0 }}>© 2024 AINTERVIEW AI. CINEMATIC INTELLIGENCE.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8rem', color: '#a8abb3', letterSpacing: '1px' }}>
-                    <span style={{ cursor: 'pointer' }}>PRIVACY</span>
-                    <span style={{ cursor: 'pointer' }}>TERMS</span>
-                    <span style={{ cursor: 'pointer' }}>TWITTER</span>
-                    <span style={{ cursor: 'pointer' }}>LINKEDIN</span>
-                </div>
             </div>
 
         </div>
