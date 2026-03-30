@@ -1,231 +1,204 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { AuthContext } from '../context/AuthContext';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
+    const { user } = useContext(AuthContext);
+    const [history, setHistory] = useState([]);
+    const [progressData, setProgressData] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    setLoading(false);
+                    return;
+                }
+
+                // Execute all API requests in parallel
+                const [historyRes, progressRes] = await Promise.allSettled([
+                    axios.get('/api/interview/history', { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get('/api/interview/progress', { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+
+                if (historyRes.status === 'fulfilled') {
+                    setHistory(historyRes.value.data);
+                }
+                
+                if (progressRes.status === 'fulfilled') {
+                    // Format score out of 100 for Recharts display
+                    const rawProgress = progressRes.value.data.map(d => ({
+                        ...d, 
+                        score: Math.round(d.score * 10) 
+                    }));
+                    setProgressData(rawProgress);
+                }
+
+            } catch (err) {
+                console.error("Dashboard fetch error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    const recentSessions = history.slice(0, 3);
+    const hasProgressData = progressData && progressData.length >= 2;
+
+    if (loading) {
+        return <div style={{ minHeight: '100vh', background: '#0a0e14', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e08efe' }}>Loading Dashboard...</div>;
+    }
+
     return (
-        <div style={{ backgroundColor: '#0a0e14', color: '#f1f3fc', paddingBottom: '3rem', fontFamily: 'var(--font-body)' }}>
-            
-            {/* Top Navigation Bar from image (since it was requested to match) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 0', marginBottom: '2rem', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-                    <div className="display-md" style={{ fontSize: '1.5rem', margin: 0 }}>AInterview</div>
-                    <div style={{ display: 'flex', gap: '1.5rem', color: '#a8abb3', fontSize: '0.9rem' }}>
-                        <span style={{ cursor: 'pointer' }}>Product</span>
-                        <span style={{ cursor: 'pointer' }}>Features</span>
-                        <span style={{ cursor: 'pointer' }}>Pricing</span>
-                    </div>
-                </div>
-                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-                    <span style={{ color: '#a8abb3', fontSize: '0.9rem', cursor: 'pointer' }}>Log In</span>
-                    <button style={{ 
-                        background: 'linear-gradient(135deg, #e08efe, #8995ff)', 
-                        border: 'none', 
-                        padding: '8px 20px', 
-                        borderRadius: '20px', 
-                        color: 'black', 
-                        fontWeight: '600' 
-                    }}>Sign Up</button>
-                </div>
-            </div>
-
-            {/* Header Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '3rem' }}>
-                <div>
+        <div style={{ backgroundColor: '#0a0e14', color: '#f1f3fc', padding: '2rem', fontFamily: 'var(--font-body)', minHeight: '100vh' }}>
+            <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                
+                {/* Hero / Greeting */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '3rem' }}>
                     <h1 style={{ 
-                        fontSize: '3rem', 
-                        fontWeight: 'bold', 
-                        background: 'linear-gradient(to right, #e08efe, #8995ff)', 
-                        WebkitBackgroundClip: 'text', 
-                        color: 'transparent', 
-                        margin: '0 0 1rem 0',
+                        fontSize: '2.5rem', fontWeight: 'bold', margin: 0,
+                        background: 'linear-gradient(to right, #e08efe, #8995ff)', WebkitBackgroundClip: 'text', color: 'transparent',
                         fontFamily: 'var(--font-display)'
-                    }}>Welcome back, Alex!</h1>
-                    <p style={{ color: '#a8abb3', fontSize: '1.1rem', maxWidth: '600px', margin: 0 }}>
-                        Ready to ace your next session? We've analyzed 12 new industry trends for your role since your last visit.
-                    </p>
-                </div>
-                <Link to="/interview-setup" style={{ textDecoration: 'none' }}>
-                    <button style={{ 
-                        background: '#b899fd', 
-                        color: '#1e1136', 
-                        padding: '14px 28px', 
-                        borderRadius: '30px', 
-                        fontWeight: 'bold', 
-                        border: 'none', 
-                        cursor: 'pointer', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '10px', 
-                        fontSize: '1rem' 
                     }}>
-                        <div style={{ background: 'rgba(0,0,0,0.2)', width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
-                        </div>
-                        Start Interview
-                    </button>
-                </Link>
-            </div>
-
-            {/* Top Grid: Consistency & Resume */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                {/* Consistency Score Card */}
-                <div style={{ background: '#181b21', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <div>
-                            <div style={{ color: '#e08efe', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Performance Overview</div>
-                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>Consistency Score</h2>
-                        </div>
-                        <div style={{ background: 'rgba(137, 149, 255, 0.1)', color: '#8995ff', padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
-                            +14%
-                        </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <div>
-                            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', lineHeight: '1' }}>84<span style={{ fontSize: '1.5rem', color: '#a8abb3' }}>%</span></div>
-                            <div style={{ color: '#a8abb3', fontSize: '0.9rem', marginTop: '0.5rem' }}>Accuracy Rate</div>
-                        </div>
-                        
-                        {/* Mock Chart */}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', height: '60px' }}>
-                            <div style={{ width: '40px', height: '30px', background: 'rgba(224, 142, 254, 0.3)', borderRadius: '6px' }}></div>
-                            <div style={{ width: '40px', height: '40px', background: 'rgba(224, 142, 254, 0.3)', borderRadius: '6px' }}></div>
-                            <div style={{ width: '40px', height: '20px', background: 'rgba(224, 142, 254, 0.3)', borderRadius: '6px' }}></div>
-                            <div style={{ width: '40px', height: '45px', background: 'rgba(224, 142, 254, 0.4)', borderRadius: '6px' }}></div>
-                            <div style={{ width: '40px', height: '60px', background: '#d58ffd', borderRadius: '6px', boxShadow: '0 0 15px rgba(224, 142, 254, 0.3)' }}></div>
-                        </div>
-
-                        <div>
-                            <div style={{ fontSize: '3.5rem', fontWeight: 'bold', lineHeight: '1' }}>28</div>
-                            <div style={{ color: '#a8abb3', fontSize: '0.9rem', marginTop: '0.5rem', textAlign: 'right' }}>Sessions</div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Resume Status Card */}
-                <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                    <div style={{ background: '#ff709b', width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-                    </div>
-                    <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.5rem', fontWeight: 'bold' }}>Resume Status</h2>
-                    <p style={{ color: '#a8abb3', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: '1.5' }}>
-                        Last updated 2 days ago. ATS compatibility: <strong style={{ color: '#ff709b' }}>92%</strong>
+                        Welcome back, {user?.username?.split(' ')[0] || user?.name?.split(' ')[0] || 'User'}!
+                    </h1>
+                    <p style={{ color: '#a8abb3', fontSize: '1.05rem', maxWidth: '600px', margin: 0 }}>
+                        Ready to elevate your skills? Your AI interviewer is waiting.
                     </p>
-                    <div style={{ fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                        View Full Analysis <span style={{ fontSize: '1.2rem' }}>→</span>
-                    </div>
                 </div>
-            </div>
 
-            {/* Middle Grid: Weak Areas & Technical Score */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                {/* Target Weak Areas */}
-                <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: hasProgressData ? '1fr 1fr' : '1fr', gap: '2rem', marginBottom: '3rem' }}>
+                    
+                    {/* Start Practicing CTA Card */}
+                    <div style={{ 
+                        background: 'linear-gradient(145deg, #1c1f26 0%, #15171e 100%)', 
+                        borderRadius: '24px', padding: '3rem 2rem', 
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start',
+                        position: 'relative', overflow: 'hidden'
+                    }}>
+                        <div style={{ background: '#e08efe', width: '56px', height: '56px', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem', boxShadow: '0 8px 24px rgba(224,142,254,0.3)' }}>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        </div>
+                        <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', margin: '0 0 0.5rem 0', color: 'white' }}>Start Practicing</h2>
+                        <p style={{ color: '#a8abb3', fontSize: '0.95rem', margin: '0 0 2rem 0', lineHeight: '1.5', maxWidth: '300px' }}>
+                            Jump right into a mock interview customized to your latest resume.
+                        </p>
+                        <Link to="/interview-setup" style={{ textDecoration: 'none' }}>
+                            <button style={{ 
+                                background: 'linear-gradient(135deg, #e08efe, #8995ff)', color: '#000', padding: '16px 36px', 
+                                borderRadius: '30px', fontWeight: 'bold', border: 'none', cursor: 'pointer',
+                                fontSize: '1.05rem', boxShadow: '0 4px 15px rgba(224,142,254,0.3)', transition: 'transform 0.2s ease'
+                            }} onMouseOver={e => e.target.style.transform = 'translateY(-2px)'} onMouseOut={e => e.target.style.transform = 'translateY(0)'}>
+                                Start Session
+                            </button>
+                        </Link>
+                    </div>
+
+                    {/* Progress Chart (Only if sufficient data) */}
+                    {hasProgressData && (
+                        <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                                <div style={{ width: '4px', height: '20px', background: '#8995ff', borderRadius: '2px' }}></div>
+                                <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'white' }}>Performance Growth</h2>
+                            </div>
+                            <div style={{ flex: 1, minHeight: '200px' }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={progressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8995ff" stopOpacity={0.8}/>
+                                                <stop offset="95%" stopColor="#8995ff" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="date" stroke="#a8abb3" fontSize={12} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#a8abb3" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                                        <Tooltip 
+                                            contentStyle={{ background: '#15171e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }}
+                                            itemStyle={{ color: '#8995ff' }}
+                                        />
+                                        <Area type="monotone" dataKey="score" stroke="#8995ff" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Recent History Section */}
+                <div style={{ marginBottom: '3rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                         <div style={{ width: '4px', height: '20px', background: '#ff709b', borderRadius: '2px' }}></div>
-                        <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold' }}>Target Weak Areas</h2>
+                        <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'white' }}>Recent Sessions</h2>
                     </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div style={{ background: '#15171e', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff709b' }}></div>
-                                <span style={{ fontSize: '0.95rem' }}>System Design Scalability</span>
-                            </div>
-                            <span style={{ background: 'rgba(255,112,155,0.1)', color: '#ff709b', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>High Priority</span>
-                        </div>
-                        
-                        <div style={{ background: '#15171e', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ff709b' }}></div>
-                                <span style={{ fontSize: '0.95rem' }}>Behavioral: Conflict Res</span>
-                            </div>
-                            <span style={{ background: 'rgba(255,112,155,0.1)', color: '#ff709b', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>Medium</span>
-                        </div>
-                        
-                        <div style={{ background: '#15171e', padding: '1rem 1.5rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8995ff' }}></div>
-                                <span style={{ fontSize: '0.95rem' }}>Concurrency & Locks</span>
-                            </div>
-                            <span style={{ background: 'rgba(137,149,255,0.1)', color: '#8995ff', padding: '4px 12px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>Stable</span>
-                        </div>
-                    </div>
-                </div>
 
-                {/* Avg Technical Score */}
-                <div style={{ background: '#1c1f26', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                        <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold' }}>Avg Technical Score</h2>
-                        <div style={{ background: 'rgba(224,142,254,0.1)', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e08efe" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                        </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flex: 1 }}>
-                        {/* Circular Progress Mockup */}
-                        <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <svg width="120" height="120" viewBox="0 0 120 120" style={{ transform: 'rotate(-90deg)' }}>
-                                <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                                <circle cx="60" cy="60" r="50" fill="none" stroke="#e08efe" strokeWidth="8" strokeDasharray="314" strokeDashoffset="78" strokeLinecap="round" style={{ filter: 'drop-shadow(0 0 8px rgba(224,142,254,0.6))' }} />
+                    {history.length === 0 ? (
+                        <div style={{ 
+                            background: '#1c1f26', borderRadius: '24px', padding: '4rem 2rem', 
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                            border: '1px dashed rgba(255,255,255,0.1)', textAlign: 'center'
+                        }}>
+                            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: '1.5rem' }}>
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>
                             </svg>
-                            <div style={{ position: 'absolute', fontSize: '2rem', fontWeight: 'bold' }}>7.5</div>
+                            <h3 style={{ fontSize: '1.2rem', color: 'white', margin: '0 0 0.5rem 0' }}>No interviews yet</h3>
+                            <p style={{ color: '#a8abb3', fontSize: '0.9rem', margin: 0 }}>Start your first mock interview to see analysis here.</p>
                         </div>
-                        
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                                <span style={{ fontSize: '0.7rem', color: '#a8abb3', letterSpacing: '1px', fontWeight: 'bold' }}>CURRENT RANK</span>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Top 15%</span>
-                            </div>
-                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', marginBottom: '1.5rem' }}>
-                                <div style={{ width: '85%', height: '100%', background: 'linear-gradient(90deg, #e08efe, #8995ff)', borderRadius: '3px' }}></div>
-                            </div>
-                            <p style={{ color: '#a8abb3', fontSize: '0.85rem', mragin: 0, lineHeight: '1.4' }}>
-                                Your logic and reasoning skills are currently your strongest assets.
-                            </p>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {recentSessions.map(session => {
+                                const score = session.averageScore ? Math.round(session.averageScore * 10) : 0;
+                                let statusColor = '#a8abb3';
+                                if (score >= 80) statusColor = '#e08efe';
+                                else if (score >= 50) statusColor = '#8995ff';
+                                else if (score > 0) statusColor = '#ff709b';
+
+                                return (
+                                    <div key={session._id} style={{ 
+                                        background: '#1c1f26', borderRadius: '16px', padding: '1.5rem 2rem',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        border: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s cursor'
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#fff', marginBottom: '6px' }}>
+                                                {session.role || 'General Software Engineer'}
+                                            </div>
+                                            <div style={{ fontSize: '0.85rem', color: '#a8abb3', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span>{new Date(session.createdAt).toLocaleDateString()}</span>
+                                                <span style={{ color: 'rgba(255,255,255,0.2)' }}>|</span>
+                                                <span>{session.difficulty}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '1.3rem', fontWeight: 'bold', color: 'white' }}>{score}%</div>
+                                                <div style={{ fontSize: '0.7rem', color: statusColor, fontWeight: 'bold', letterSpacing: '1px' }}>AVERAGE SCORE</div>
+                                            </div>
+                                            
+                                            <Link to={`/summary/${session._id}`} style={{ textDecoration: 'none' }}>
+                                                <button style={{
+                                                    background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)',
+                                                    padding: '10px 20px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s'
+                                                }} onMouseOver={e => e.target.style.background = 'rgba(255,255,255,0.1)'} onMouseOut={e => e.target.style.background = 'rgba(255,255,255,0.05)'}>
+                                                    View Details
+                                                </button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
-                    </div>
+                    )}
                 </div>
-            </div>
 
-            {/* Bottom Grid: 3 small feature cards */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '4rem' }}>
-                <div style={{ background: '#1c1f26', borderRadius: '20px', padding: '1.5rem' }}>
-                    <div style={{ color: '#e08efe', marginBottom: '1rem', fontSize: '1.5rem' }}>✨</div>
-                    <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>AI Feedback Loop</h3>
-                    <p style={{ color: '#a8abb3', fontSize: '0.9rem', margin: 0, lineHeight: '1.5' }}>Get real-time voice and sentiment analysis on your last session.</p>
-                </div>
-                
-                <div style={{ background: '#1c1f26', borderRadius: '20px', padding: '1.5rem' }}>
-                    <div style={{ color: '#8995ff', marginBottom: '1rem', fontSize: '1.5rem' }}>⚙️</div>
-                    <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>Role Customization</h3>
-                    <p style={{ color: '#a8abb3', fontSize: '0.9rem', margin: 0, lineHeight: '1.5' }}>Tailor your next mock interview to a specific job description.</p>
-                </div>
-                
-                <div style={{ background: '#1c1f26', borderRadius: '20px', padding: '1.5rem' }}>
-                    <div style={{ color: '#ff709b', marginBottom: '1rem', fontSize: '1.5rem' }}>💼</div>
-                    <h3 style={{ fontSize: '1.1rem', margin: '0 0 0.5rem 0', fontWeight: 'bold' }}>Market Insights</h3>
-                    <p style={{ color: '#a8abb3', fontSize: '0.9rem', margin: 0, lineHeight: '1.5' }}>View salary benchmarks and tech stack trends for your targets.</p>
-                </div>
             </div>
-
-            {/* Footer */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h2 style={{ fontSize: '1.2rem', margin: '0 0 0.5rem 0' }}>AInterview AI</h2>
-                    <p style={{ color: '#a8abb3', fontSize: '0.8rem', margin: 0 }}>© 2024 AINTERVIEW AI. CINEMATIC INTELLIGENCE.</p>
-                </div>
-                <div style={{ display: 'flex', gap: '2rem', fontSize: '0.8rem', color: '#a8abb3', letterSpacing: '1px' }}>
-                    <span style={{ cursor: 'pointer' }}>PRIVACY</span>
-                    <span style={{ cursor: 'pointer' }}>TERMS</span>
-                    <span style={{ cursor: 'pointer' }}>TWITTER</span>
-                    <span style={{ cursor: 'pointer' }}>LINKEDIN</span>
-                </div>
-            </div>
-            
         </div>
     );
 };

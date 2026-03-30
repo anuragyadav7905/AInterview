@@ -8,22 +8,25 @@ const interviewSchema = new mongoose.Schema({
     },
     cv: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        required: false,
         ref: 'CV'
     },
     role: {
         type: String,
-        required: true
+        required: true,
+        default: 'General'
     },
     difficulty: {
         type: String,
         required: true,
-        enum: ['Easy', 'Medium', 'Hard']
+        enum: ['Easy', 'Medium', 'Hard', 'Adaptive'],
+        default: 'Medium'
     },
     style: {
         type: String,
         required: true,
-        enum: ['Friendly', 'Strict', 'Technical', 'HR']
+        enum: ['Friendly', 'Strict', 'Technical', 'HR', 'Focused'],
+        default: 'Friendly'
     },
     status: {
         type: String,

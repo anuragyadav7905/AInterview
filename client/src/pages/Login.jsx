@@ -20,7 +20,7 @@ const Login = () => {
             await login(credentials.email, credentials.password);
             navigate('/dashboard');
         } catch (err) {
-            setError('Invalid email or password');
+            setError(typeof err === 'string' ? err : 'An error occurred during login.');
         } finally {
             setLoading(false);
         }

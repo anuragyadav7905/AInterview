@@ -5,6 +5,13 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("\\n==== WARNING ====");
+  console.warn("GEMINI_API_KEY is not set in .env.");
+  console.warn("AI Interview functionality will fail.");
+  console.warn("=================\\n");
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 

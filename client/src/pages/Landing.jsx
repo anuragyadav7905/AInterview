@@ -26,29 +26,13 @@ const Landing = () => {
                 <div style={{ fontSize: '1.5rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ color: '#E08EFE' }}>AInterview</span>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '30px', alignItems: 'center', fontSize: '0.9rem', color: '#A0AAB2' }}>
                     <span style={{ color: '#FFF', borderBottom: '2px solid #E08EFE', paddingBottom: '5px', cursor: 'pointer' }}>Product</span>
-                    <span style={{ cursor: 'pointer', transition: '0.2s' }} className="nav-hover">Features</span>
                     <Link to="/pricing" style={{ color: 'inherit', textDecoration: 'none', transition: '0.2s' }} className="nav-hover">Pricing</Link>
                 </div>
 
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'center', fontSize: '0.9rem' }}>
-                    <Link to="/login" style={{ color: '#A0AAB2', textDecoration: 'none', transition: '0.2s' }} className="nav-hover">
-                        Log in
-                    </Link>
-                    <Link to="/signup" style={{ textDecoration: 'none' }}>
-                        <button style={{ 
-                            padding: '10px 24px', 
-                            borderRadius: '20px',
-                            background: '#D9B8FF',
-                            color: '#000',
-                            border: 'none',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                        }}>Sign Up</button>
-                    </Link>
-                </div>
+
             </nav>
 
             {/* Glowing Orbs for ambiance */}
@@ -65,9 +49,9 @@ const Landing = () => {
             }} />
 
             {/* Hero Section */}
-            <section style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
+            <section style={{
+                display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 textAlign: 'center',
                 padding: '80px 20px 40px 20px',
@@ -89,7 +73,7 @@ const Landing = () => {
                     gap: '8px',
                     textTransform: 'uppercase'
                 }}>
-                    ✨ FUTURE OF HIRING IS HERE
+                    FUTURE OF PREPARATION IS HERE
                 </div>
 
                 <h1 style={{
@@ -105,11 +89,11 @@ const Landing = () => {
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent'
                     }}>
-                        Ace Your Interviews 
-                        <br/>with AI 🚀
+                        Ace Your Interviews
+                        <br />with AI 🚀
                     </span>
                 </h1>
-                
+
                 <p style={{
                     color: '#A0AAB2',
                     fontSize: '1.2rem',
@@ -122,8 +106,8 @@ const Landing = () => {
 
                 <div style={{ display: 'flex', gap: '20px' }}>
                     <Link to="/signup">
-                        <button style={{ 
-                            padding: '16px 32px', 
+                        <button style={{
+                            padding: '16px 32px',
                             fontSize: '1.1rem',
                             borderRadius: '30px',
                             background: 'linear-gradient(90deg, #E08EFE 0%, #A37BFF 100%)',
@@ -136,11 +120,11 @@ const Landing = () => {
                             gap: '10px',
                             boxShadow: '0 4px 15px rgba(224, 142, 254, 0.3)'
                         }}>
-                            Get Started 🚀
+                            Get Started
                         </button>
                     </Link>
-                    <button style={{ 
-                        padding: '16px 32px', 
+                    <button style={{
+                        padding: '16px 32px',
                         fontSize: '1.1rem',
                         borderRadius: '30px',
                         background: 'rgba(255, 255, 255, 0.05)',
@@ -197,7 +181,7 @@ const Landing = () => {
                         Live AI Feedback Engine
                     </div>
                 </div>
-                
+
                 <div style={{
                     flex: 1,
                     background: '#1A1D27',
@@ -220,7 +204,7 @@ const Landing = () => {
                             <div style={{ height: '100%', width: '90%', background: '#FF758F', borderRadius: '3px' }} />
                         </div>
                     </div>
-                    
+
                     <p style={{
                         color: '#A0AAB2',
                         fontSize: '0.85rem',
@@ -262,10 +246,10 @@ const Landing = () => {
                         overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.02)'
                     }}>
-                        <div style={{ 
-                            width: '50px', 
-                            height: '50px', 
-                            background: 'rgba(168, 85, 247, 0.15)', 
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            background: 'rgba(168, 85, 247, 0.15)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
@@ -290,10 +274,10 @@ const Landing = () => {
                         overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.02)'
                     }}>
-                        <div style={{ 
-                            width: '50px', 
-                            height: '50px', 
-                            background: 'rgba(59, 130, 246, 0.15)', 
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            background: 'rgba(59, 130, 246, 0.15)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
@@ -318,10 +302,10 @@ const Landing = () => {
                         overflow: 'hidden',
                         border: '1px solid rgba(255,255,255,0.02)'
                     }}>
-                        <div style={{ 
-                            width: '50px', 
-                            height: '50px', 
-                            background: 'rgba(236, 72, 153, 0.15)', 
+                        <div style={{
+                            width: '50px',
+                            height: '50px',
+                            background: 'rgba(236, 72, 153, 0.15)',
                             borderRadius: '12px',
                             display: 'flex',
                             alignItems: 'center',
@@ -354,17 +338,17 @@ const Landing = () => {
                 }}>
                     <h2 style={{ fontSize: '3.5rem', fontWeight: '800', marginBottom: '30px', lineHeight: '1.1' }}>
                         Your Dream Job Is One<br />
-                        <span style={{ 
+                        <span style={{
                             background: 'linear-gradient(90deg, #E08EFE 0%, #A37BFF 100%)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent'
                         }}>Practice Session</span> Away.
                     </h2>
-                    
+
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px', marginBottom: '60px' }}>
                         <Link to="/signup">
-                            <button style={{ 
-                                padding: '18px 40px', 
+                            <button style={{
+                                padding: '18px 40px',
                                 fontSize: '1.2rem',
                                 borderRadius: '30px',
                                 background: 'linear-gradient(90deg, #E08EFE 0%, #A37BFF 100%)',
@@ -412,14 +396,11 @@ const Landing = () => {
             }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <div style={{ fontWeight: 'bold', color: '#FFF', fontSize: '1rem' }}>AInterview AI</div>
-                    <div>© 2024 AINTERVIEW AI. CINEMATIC INTELLIGENCE.</div>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '30px', letterSpacing: '1px' }}>
                     <span style={{ cursor: 'pointer' }}>PRIVACY</span>
                     <span style={{ cursor: 'pointer' }}>TERMS</span>
-                    <span style={{ cursor: 'pointer' }}>TWITTER</span>
-                    <span style={{ cursor: 'pointer' }}>LINKEDIN</span>
                 </div>
             </footer>
         </div>

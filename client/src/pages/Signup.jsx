@@ -20,7 +20,7 @@ const Signup = () => {
             await signup(formData.name, formData.email, formData.password);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.message || 'Signup failed');
+            setError(typeof err === 'string' ? err : 'Signup failed. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -30,7 +30,7 @@ const Signup = () => {
         <div className="flex-center" style={{ minHeight: '100vh', background: 'var(--surface)' }}>
             <Card className="glass-card fade-in" style={{ width: '400px', borderTop: '4px solid var(--secondary)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                    <h1 className="display-md" style={{ fontSize: '2rem' }}>Join AI Prep</h1>
+                    <h1 className="display-md" style={{ fontSize: '2rem' }}>AInterview</h1>
                     <p style={{ color: 'var(--on-surface-variant)' }}>Start your journey today</p>
                 </div>
 
