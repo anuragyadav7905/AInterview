@@ -1,15 +1,9 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Layout = ({ children }) => {
     const location = useLocation();
-    const navigate = useNavigate();
 
     const isActive = (path) => location.pathname === path;
-
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        navigate('/login');
-    };
 
     const navItems = [
         { label: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -22,7 +16,7 @@ const Layout = ({ children }) => {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh' }}>
-            {/* Sidebar following "Glass & Gradient" Rule */}
+            {/* Sidebar */}
             <aside style={{
                 width: '260px',
                 background: 'var(--surface-bright)',
@@ -34,7 +28,6 @@ const Layout = ({ children }) => {
                 position: 'fixed',
                 height: '100vh',
                 zIndex: 10
-                /* No borders to satisfy the No-Line rule */
             }}>
                 <div style={{ marginBottom: '3rem', paddingLeft: '1rem' }}>
                     <h1 className="display-md" style={{ fontSize: '1.5rem', margin: 0 }}>AInterview</h1>
@@ -64,35 +57,12 @@ const Layout = ({ children }) => {
                         </Link>
                     ))}
                 </nav>
-
-                <div style={{ paddingTop: '1rem' }}>
-                    <Link to="/profile" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '0 1rem', marginBottom: '1rem', textDecoration: 'none' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--surface-container-high)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--on-surface-variant)' }}>My Profile</div>
-                    </Link>
-                    <button
-                        onClick={handleLogout}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            background: 'rgba(255, 132, 170, 0.1)',
-                            color: 'var(--tertiary)',
-                            border: '1px solid rgba(255, 132, 170, 0.2)',
-                            borderRadius: '0.75rem',
-                            textAlign: 'left',
-                            paddingLeft: '1rem',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        🚪 Logout
-                    </button>
-                </div>
             </aside>
 
             {/* Main Content */}
             <main style={{
                 flex: 1,
-                marginLeft: '260px', // Matches sidebar width
+                marginLeft: '260px',
                 padding: 'var(--spacing-8) 3rem',
                 overflowY: 'auto'
             }}>
