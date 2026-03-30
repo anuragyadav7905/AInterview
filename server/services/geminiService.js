@@ -8,13 +8,19 @@ const getGeminiInstance = () => {
     return new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
 };
 
-const generateInterviewQuestion = async (cvData, previousQA, questionNumber, totalQuestions) => {
+const generateInterviewQuestion = async (cvData, previousQA, questionNumber, totalQuestions, persona = 'Professional') => {
     try {
         const genAI = getGeminiInstance();
-        // The prompt asked for 'gemini-pro', which resolves to gemini-1.5-pro in current SDK
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
-        let promptText = "You are a professional interviewer. ";
+        const personaDescriptions = {
+            'Professional': 'a professional and composed interviewer',
+            'Strict & Technical': 'a strict, highly technical interviewer who asks deep dive questions and expects precise answers',
+            'Friendly & Casual': 'a friendly and casual interviewer who creates a relaxed atmosphere while still being thorough'
+        };
+        const personaDesc = personaDescriptions[persona] || 'a professional interviewer';
+
+        let promptText = `You are ${personaDesc}. `;
         if (cvData) {
              // Pass structuredData if provided
             const cvString = typeof cvData === 'string' ? cvData : JSON.stringify(cvData);
@@ -43,7 +49,7 @@ const generateInterviewQuestion = async (cvData, previousQA, questionNumber, tot
 const evaluateAnswer = async (question, answer, cvContext) => {
     try {
         const genAI = getGeminiInstance();
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         let promptText = `You are an expert interview coach. Question asked: ${question}. Candidate's answer: ${answer}. `;
         if (cvContext) {
@@ -82,8 +88,7 @@ Do not include \`\`\`json or \`\`\` blocks, just raw JSON.`;
 const transcribeWithGemini = async (audioBase64, mimeType) => {
     try {
         const genAI = getGeminiInstance();
-        // gemini-1.5-flash is ideal for multimodal fast transcription
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
         const prompt = "Transcribe this audio recording exactly as spoken.";
         

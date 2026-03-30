@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 const InterviewRoom = () => {
-    const { id } = useParams();
+    useParams();
     const navigate = useNavigate();
 
     // Core states
@@ -15,46 +15,47 @@ const InterviewRoom = () => {
     const [interviewId, setInterviewId] = useState(null);
     const [questionCount, setQuestionCount] = useState(0);
 
-    // Audio recording states
+    // Voice states
     const [isRecording, setIsRecording] = useState(false);
-    const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-    const [audioDataArray, setAudioDataArray] = useState(new Uint8Array(20));
-    
+    const [liveTranscript, setLiveTranscript] = useState('');
+
     const messagesEndRef = useRef(null);
-    const mediaRecorderRef = useRef(null);
-    const audioContextRef = useRef(null);
-    const analyserRef = useRef(null);
-    const animationFrameRef = useRef(null);
-    const chunksRef = useRef([]);
+    const recognitionRef = useRef(null);
+    const hasInitialized = useRef(false); // Guard against React StrictMode double-invoke
 
     const MAX_QUESTIONS = 4;
 
     // --- Initialization & API Calls ---
     useEffect(() => {
+        // Prevent double-init from React StrictMode
+        if (hasInitialized.current) return;
+        hasInitialized.current = true;
+
         const initSession = async () => {
             const cvId = localStorage.getItem('cvId');
+            const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+            const persona = prefs.persona || 'Professional';
             setIsTyping(true);
 
             try {
                 const token = localStorage.getItem('token');
-                
-                // Real API Hookup (Fallback to mock if needed)
+
                 let resId;
                 try {
-                    const startRes = await axios.post('/api/interview/start', { cvId }, {
+                    const startRes = await axios.post('/api/interview/start', { cvId, persona }, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     resId = startRes.data.interviewId || startRes.data.id;
                 } catch (e) {
+                    console.error('Failed to start interview session:', e);
                     resId = `mock_int_${Date.now()}`;
                 }
-                
+
                 setInterviewId(resId);
-                
-                // Determine greeting
-                const greeting = "Hello! I'm your AI interviewer today. " + 
-                    (cvId 
-                        ? "I've reviewed your resume and I'm ready to ask you some questions based on your experience. " 
+
+                const greeting = "Hello! I'm your AI interviewer today. " +
+                    (cvId
+                        ? "I've reviewed your resume and I'm ready to ask you some questions based on your experience. "
                         : "Let's start with a general interview. I'll ask you some common interview questions. ") +
                     "Shall we begin?";
 
@@ -66,10 +67,12 @@ const InterviewRoom = () => {
             }
         };
 
-        // Small delay for realism
-        setTimeout(initSession, 1000);
+        const timerId = setTimeout(initSession, 1000);
 
-        return () => stopRecordingCleanup();
+        return () => {
+            clearTimeout(timerId);
+            if (recognitionRef.current) recognitionRef.current.abort();
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -78,16 +81,6 @@ const InterviewRoom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    // Cleanup audio resources
-    const stopRecordingCleanup = () => {
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.stop();
-        }
-        if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-            audioContextRef.current.close().catch(e => console.error(e));
-        }
-    };
 
     // --- Message Management ---
     const addMessage = (sender, text) => {
@@ -120,13 +113,14 @@ const InterviewRoom = () => {
         if (questionCount >= MAX_QUESTIONS - 1) {
             addMessage('ai', "Thank you for your time. That concludes our interview. Please wait while I generate your final summary report...");
             const token = localStorage.getItem('token');
-            if (interviewId && !interviewId.startsWith('mock_')) {
-                axios.post(`/api/interview/${interviewId}/complete`, {}, {
+            const realId = interviewId && !interviewId.startsWith('mock_') ? interviewId : null;
+            if (realId) {
+                axios.post(`/api/interview/${realId}/complete`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(e => console.error('Could not mark interview complete', e));
             }
             setTimeout(() => {
-                navigate(`/summary/${interviewId || id || 'latest'}`);
+                navigate(realId ? `/summary/${realId}` : '/interview-setup');
             }, 3000);
             return;
         }
@@ -164,81 +158,72 @@ const InterviewRoom = () => {
         }
     };
 
-    // --- Audio Logic ---
-    const toggleRecording = async () => {
+    // --- Voice Logic (Web Speech API) ---
+    const toggleRecording = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            setInputMode('text');
+            return;
+        }
+
         if (isRecording) {
-            // Stop recording
-            mediaRecorderRef.current.stop();
+            recognitionRef.current?.stop();
             setIsRecording(false);
-            setIsProcessingVoice(true);
-            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-            // reset visualizer
-            setAudioDataArray(new Uint8Array(20));
         } else {
-            // Start recording
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorderRef.current = new MediaRecorder(stream);
-                
-                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                analyserRef.current = audioContextRef.current.createAnalyser();
-                analyserRef.current.fftSize = 64; 
-                
-                const source = audioContextRef.current.createMediaStreamSource(stream);
-                source.connect(analyserRef.current);
-                
-                const bufferLength = analyserRef.current.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                
-                const drawWaveform = () => {
-                    if (!analyserRef.current) return;
-                    animationFrameRef.current = requestAnimationFrame(drawWaveform);
-                    analyserRef.current.getByteFrequencyData(dataArray);
-                    setAudioDataArray(new Uint8Array(dataArray.slice(0, 20))); // Take exactly 20 bins
-                };
-                drawWaveform();
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.continuous = true;
+            recognition.interimResults = true;
 
-                mediaRecorderRef.current.ondataavailable = e => {
-                    if (e.data.size > 0) chunksRef.current.push(e.data);
-                };
-
-                mediaRecorderRef.current.onstop = async () => {
-                    const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-                    chunksRef.current = [];
-                    stream.getTracks().forEach(track => track.stop());
-
-                    if (audioContextRef.current?.state !== 'closed') {
-                        audioContextRef.current.close().catch(e => console.error(e));
-                    }
-
-                    try {
-                        const token = localStorage.getItem('token');
-                        const formData = new FormData();
-                        formData.append('audio', blob, 'recording.webm');
-                        const res = await axios.post('/api/interview/transcribe', formData, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        setIsProcessingVoice(false);
-                        handleUserSubmit(res.data.transcript);
-                    } catch (err) {
-                        console.error('Transcription failed', err);
-                        setIsProcessingVoice(false);
-                        alert('Voice transcription failed. Please switch to text mode and type your answer.');
-                    }
-                };
-
-                mediaRecorderRef.current.start();
+            recognition.onstart = () => {
                 setIsRecording(true);
-            } catch (err) {
-                console.error("Microphone access denied or failed", err);
-                alert("Please ensure microphone permissions are granted.");
-            }
+                setLiveTranscript('');
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                let final = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const t = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) final += t;
+                    else interim += t;
+                }
+                setLiveTranscript(final || interim);
+            };
+
+            recognition.onend = () => {
+                setIsRecording(false);
+                setLiveTranscript(prev => {
+                    if (prev.trim()) handleUserSubmit(prev.trim());
+                    return '';
+                });
+            };
+
+            recognition.onerror = (e) => {
+                console.error('Speech recognition error', e.error);
+                setIsRecording(false);
+                setLiveTranscript('');
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
         }
     };
 
     const handleEndInterview = () => {
+        if (!interviewId || interviewId.startsWith('mock_')) {
+            // Interview never properly started — go back to setup
+            if (window.confirm("End this session and go back?")) {
+                navigate('/interview-setup');
+            }
+            return;
+        }
         if (window.confirm("Are you sure you want to end the interview early?")) {
-            navigate(`/summary/${interviewId || id || 'latest'}`);
+            const token = localStorage.getItem('token');
+            axios.post(`/api/interview/${interviewId}/complete`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            }).catch(e => console.error('Could not mark interview complete', e));
+            navigate(`/summary/${interviewId}`);
         }
     };
 
@@ -418,48 +403,34 @@ const InterviewRoom = () => {
                 </button>
 
                 {inputMode === 'voice' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', width: '100%', height: '140px', justifyContent: 'center' }}>
-                        <div style={{ color: isProcessingVoice ? 'var(--secondary)' : (isRecording ? '#ff5252' : 'rgba(255,255,255,0.5)'), fontSize: '0.9rem', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', animation: isRecording || isProcessingVoice ? 'pulseText 1.5s infinite' : 'none' }}>
-                            {isProcessingVoice ? 'Processing...' : (isRecording ? 'Recording... Tap to stop' : 'Tap to speak')}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '700px', minHeight: '140px', justifyContent: 'center' }}>
+                        <div style={{ color: isRecording ? '#ff5252' : 'rgba(255,255,255,0.5)', fontSize: '0.9rem', fontWeight: '600', letterSpacing: '1px', textTransform: 'uppercase', animation: isRecording ? 'pulseText 1.5s infinite' : 'none' }}>
+                            {isRecording ? 'Listening... Tap to stop' : 'Tap to speak'}
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                            {/* Left Waveform */}
-                            {isRecording && (
-                                <div style={{ display: 'flex', gap: '4px', height: '40px', alignItems: 'center' }}>
-                                    {[...Array(10)].map((_, i) => (
-                                        <div key={`l-${i}`} style={{ width: '4px', background: 'var(--primary)', borderRadius: '2px', height: `${Math.max(4, audioDataArray[i] / 4)}px`, transition: 'height 0.1s ease' }} />
-                                    ))}
-                                </div>
-                            )}
+                        {/* Live transcript preview */}
+                        {isRecording && liveTranscript && (
+                            <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', fontStyle: 'italic', textAlign: 'center', maxWidth: '500px', lineHeight: '1.5' }}>
+                                "{liveTranscript}"
+                            </div>
+                        )}
 
-                            {/* Mic Button */}
-                            <button 
-                                onClick={toggleRecording}
-                                disabled={isProcessingVoice}
-                                style={{
-                                    width: '80px', height: '80px', borderRadius: '50%',
-                                    background: isRecording ? 'linear-gradient(135deg, #ff5252, #cc0000)' : 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                                    border: 'none', color: '#fff', cursor: isProcessingVoice ? 'wait' : 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    boxShadow: isRecording ? '0 0 30px rgba(255, 82, 82, 0.4)' : '0 10px 20px rgba(224, 142, 254, 0.3)',
-                                    transition: 'all 0.3s', opacity: isProcessingVoice ? 0.5 : 1, transform: isRecording ? 'scale(1.05)' : 'scale(1)'
-                                }}
-                            >
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    {isRecording ? <rect x="7" y="7" width="10" height="10" /> : <><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>}
-                                </svg>
-                            </button>
-
-                            {/* Right Waveform */}
-                            {isRecording && (
-                                <div style={{ display: 'flex', gap: '4px', height: '40px', alignItems: 'center' }}>
-                                    {[...Array(10)].map((_, i) => (
-                                        <div key={`r-${i}`} style={{ width: '4px', background: 'var(--secondary)', borderRadius: '2px', height: `${Math.max(4, audioDataArray[19-i] / 4)}px`, transition: 'height 0.1s ease' }} />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        {/* Mic Button */}
+                        <button
+                            onClick={toggleRecording}
+                            style={{
+                                width: '80px', height: '80px', borderRadius: '50%',
+                                background: isRecording ? 'linear-gradient(135deg, #ff5252, #cc0000)' : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                                border: 'none', color: '#fff', cursor: 'pointer',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: isRecording ? '0 0 30px rgba(255, 82, 82, 0.4)' : '0 10px 20px rgba(224, 142, 254, 0.3)',
+                                transition: 'all 0.3s', transform: isRecording ? 'scale(1.05)' : 'scale(1)'
+                            }}
+                        >
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                {isRecording ? <rect x="7" y="7" width="10" height="10" /> : <><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></>}
+                            </svg>
+                        </button>
                     </div>
                 ) : (
                     <div style={{ width: '100%', maxWidth: '900px', display: 'flex', gap: '12px', alignItems: 'flex-end' }}>

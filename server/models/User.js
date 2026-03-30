@@ -15,6 +15,10 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    preferences: {
+        notifications: { type: Boolean, default: true },
+        persona: { type: String, default: 'Professional' }
     }
 });
 

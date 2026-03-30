@@ -120,8 +120,8 @@ router.post('/', protect, upload.single('file'), async (req, res) => {
             // Continue even if extraction fails (store file path at least)
         }
 
-        // Structure Data
-        const structuredData = parseCV(text);
+        // Structure Data (Gemini-powered async parser)
+        const structuredData = await parseCV(text);
 
         const cv = await CV.create({
             user: req.user._id,

@@ -16,7 +16,7 @@ const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize
 // @route   POST /api/interview/start
 // @access  Private
 router.post('/start', protect, async (req, res) => {
-    const { cvId } = req.body; // cvId is optional
+    const { cvId, persona } = req.body; // cvId is optional
 
     try {
         let actualCvId = null;
@@ -29,10 +29,10 @@ router.post('/start', protect, async (req, res) => {
 
         const interview = await Interview.create({
             user: req.user._id,
-            cv: actualCvId, // Will be null if not provided
-            role: 'General Software Engineer', // using defaults
+            cv: actualCvId,
+            role: 'General Software Engineer',
             difficulty: 'Adaptive',
-            style: 'Friendly'
+            style: persona || 'Professional'
         });
 
         res.status(201).json({
@@ -65,7 +65,7 @@ router.post('/:id/questions', protect, async (req, res) => {
 
         let previousQA = existingQuestions.map(q => `Q: ${q.content}\nA: ${q.transcript || "(No answer provided)"}`).join('\n\n');
 
-        const nextQuestionText = await generateInterviewQuestion(cvData, previousQA, questionNumber, totalQuestions);
+        const nextQuestionText = await generateInterviewQuestion(cvData, previousQA, questionNumber, totalQuestions, interview.style);
 
         const newQuestion = await Question.create({
             interview: interview._id,

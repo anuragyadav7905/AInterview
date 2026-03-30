@@ -78,11 +78,29 @@ router.get('/me', protect, async (req, res) => {
             res.json({
                 _id: user._id,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                preferences: user.preferences
             });
         } else {
             res.status(404).json({ message: 'User not found' });
         }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @desc    Save user preferences
+// @route   PUT /api/auth/preferences
+// @access  Private
+router.put('/preferences', protect, async (req, res) => {
+    const { notifications, persona } = req.body;
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { preferences: { notifications, persona } },
+            { new: true }
+        ).select('-password');
+        res.json({ preferences: user.preferences });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -113,33 +113,46 @@ const CVUpload = ({ onUploadSuccess }) => {
   const performRealUpload = async (selectedFile, intervalId) => {
     try {
       const formData = new FormData();
-      formData.append('cv', selectedFile);
-      
+      formData.append('file', selectedFile);
+
       const token = localStorage.getItem('token');
-      
-      let resData = null;
-      let returnedCvId = null;
-      try {
-        const response = await axios.post('/api/upload-cv', formData, {
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
-        resData = response.data.parsedData;
-        returnedCvId = response.data.cvId || response.data._id;
-      } catch (apiError) {
-        // Fallback for demo if API route doesn't exist
-        console.warn("API upload failed, using mock data for demonstration", apiError);
-        resData = {
-          name: "Alex Developer",
-          email: "alex.dev@example.com",
-          phone: "+1 (555) 987-6543",
-          skills: ["React", "Node.js", "Python", "AWS", "UI/UX"],
-          atsScore: 92
-        };
-        returnedCvId = "mock-cv-12345";
+
+      const response = await axios.post('/api/upload-cv', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const structured = response.data.structuredData || {};
+      const returnedCvId = response.data._id;
+
+      // Parse skills string into array for display (e.g. "React, Node.js\nPython" → ["React", "Node.js", "Python"])
+      let skillsArray = [];
+      if (structured.skills) {
+        skillsArray = structured.skills
+          .split(/[\n,]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && s.length < 40)
+          .slice(0, 8);
       }
+
+      // Simple ATS score: base 60 + bonus for each section present
+      const atsScore = 60
+        + (structured.name ? 5 : 0)
+        + (structured.email ? 5 : 0)
+        + (structured.skills ? 10 : 0)
+        + (structured.experience ? 10 : 0)
+        + (structured.education ? 5 : 0)
+        + (structured.projects ? 5 : 0);
+
+      const resData = {
+        name: structured.name || response.data.fileName,
+        email: structured.email || '',
+        phone: structured.phone || '',
+        skills: skillsArray.length > 0 ? skillsArray : ['See full CV'],
+        atsScore
+      };
       
       setTimeout(() => {
         clearInterval(intervalId);

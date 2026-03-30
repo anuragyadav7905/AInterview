@@ -36,8 +36,13 @@ const Profile = () => {
 
     const displayName = cv?.structuredData?.name || user?.username || 'User Name';
     const displayEmail = cv?.structuredData?.email || user?.email || 'user@example.com';
-    const displaySkills = cv?.structuredData?.skills || 'No skills parsed yet';
-    const displayExperience = cv?.structuredData?.experience || 'No experience data parsed';
+
+    // Skills is a raw text section — split into chips for display
+    const rawSkills = cv?.structuredData?.skills || '';
+    const displaySkills = rawSkills
+        ? rawSkills.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0 && s.length < 40).slice(0, 10)
+        : [];
+    const displayExperience = cv?.structuredData?.experience || null;
 
     return (
         <div className="fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -89,15 +94,27 @@ const Profile = () => {
                     {cv ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                             <div>
-                                <div style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem', marginBottom: '4px' }}>Skills Detected</div>
-                                <div style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>{displaySkills}</div>
+                                <div style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem', marginBottom: '8px' }}>Skills Detected</div>
+                                {displaySkills.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                        {displaySkills.map((skill, i) => (
+                                            <span key={i} style={{ background: 'rgba(224,142,254,0.1)', border: '1px solid rgba(224,142,254,0.2)', color: 'var(--primary)', padding: '3px 10px', borderRadius: '20px', fontSize: '0.8rem' }}>
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ color: 'var(--on-surface-variant)', fontSize: '0.9rem' }}>No skills section detected in CV</div>
+                                )}
                             </div>
-                            <div>
-                                <div style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem', marginBottom: '4px' }}>Experience</div>
-                                <div style={{ fontSize: '0.95rem', color: 'var(--on-surface-variant)', lineHeight: '1.5', maxHeight: '80px', overflow: 'hidden' }}>
-                                    {displayExperience}
+                            {displayExperience && (
+                                <div>
+                                    <div style={{ color: 'var(--on-surface-variant)', fontSize: '0.85rem', marginBottom: '4px' }}>Experience</div>
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--on-surface-variant)', lineHeight: '1.5', maxHeight: '80px', overflow: 'hidden' }}>
+                                        {displayExperience}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     ) : (
                         <p style={{ color: 'var(--on-surface-variant)', fontSize: '0.9rem' }}>Upload a CV to see parsed data here.</p>
