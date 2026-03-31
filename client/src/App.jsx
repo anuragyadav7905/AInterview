@@ -15,6 +15,7 @@ import Settings from './pages/Settings';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import CVUpload from './components/CVUpload';
+import GoogleAuthSuccess from './pages/GoogleAuthSuccess';
 
 function App() {
     return (
@@ -26,6 +27,7 @@ function App() {
                     <Route path="/login" element={<Login />} />
                     <Route path="/signup" element={<Signup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/auth/google/success" element={<GoogleAuthSuccess />} />
                     <Route path="/cv-demo" element={<div style={{ minHeight: '100vh', background: 'var(--bg-dark, #0a0e14)', padding: '50px' }}><CVUpload /></div>} />
 
                     {/* Protected Routes */}

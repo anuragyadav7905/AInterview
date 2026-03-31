@@ -14,7 +14,14 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: false  // Google users won't have a password
+    },
+    googleId: {
+        type: String,
+        sparse: true     // allows multiple null values
+    },
+    avatar: {
+        type: String
     },
     preferences: {
         notifications: { type: Boolean, default: true },
@@ -22,11 +29,9 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-// Hash password before saving
+// Only hash password if it exists and was modified
 userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        return next();
-    }
+    if (!this.password || !this.isModified('password')) return next();
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();

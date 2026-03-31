@@ -12,7 +12,7 @@ const cvSchema = new mongoose.Schema({
     },
     filePath: {
         type: String,
-        required: true
+        required: false
     },
     extractedText: {
         type: String,

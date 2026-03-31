@@ -17,6 +17,9 @@ if (!process.env.GEMINI_API_KEY) {
   console.warn('=================\n');
 }
 
+const passport = require('passport');
+require('./config/passport');
+
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -25,6 +28,7 @@ const authRoutes = require('./routes/auth');
 // Middleware
 app.use(express.json());
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:3000' }));
+app.use(passport.initialize());
 
 // Rate limiting on auth routes only
 const authLimiter = rateLimit({

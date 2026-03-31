@@ -19,11 +19,9 @@ export const AuthProvider = ({ children }) => {
                 const res = await axios.get('/api/auth/me', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
-                // Keep UI simple by just nesting token back inside
                 setUser({ ...res.data, token });
             } catch (err) {
-                console.error("Token validation failed:", err);
+                console.error('Token validation failed:', err);
                 if (err.response && err.response.status === 401) {
                     localStorage.removeItem('token');
                     localStorage.removeItem('user');
@@ -41,7 +39,6 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post('/api/auth/login', { email, password });
             const userData = res.data;
-            
             localStorage.setItem('user', JSON.stringify(userData));
             localStorage.setItem('token', userData.token);
             setUser(userData);
@@ -55,7 +52,6 @@ export const AuthProvider = ({ children }) => {
         try {
             const res = await axios.post('/api/auth/signup', { username, email, password });
             const userData = res.data;
-
             localStorage.setItem('user', JSON.stringify(userData));
             localStorage.setItem('token', userData.token);
             setUser(userData);
@@ -72,7 +68,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
+        <AuthContext.Provider value={{ user, setUser, login, signup, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );
