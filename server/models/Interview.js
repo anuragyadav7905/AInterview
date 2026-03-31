@@ -25,8 +25,7 @@ const interviewSchema = new mongoose.Schema({
     style: {
         type: String,
         required: true,
-        enum: ['Friendly', 'Strict', 'Technical', 'HR', 'Focused'],
-        default: 'Friendly'
+        default: 'Professional'
     },
     status: {
         type: String,

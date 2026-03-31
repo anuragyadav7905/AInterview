@@ -7,26 +7,22 @@ import Card from '../components/Card';
 const Profile = () => {
     const navigate = useNavigate();
     const { user, logout } = useContext(AuthContext);
-    
+
     const [cv, setCv] = useState(null);
+    const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchCV = async () => {
-            try {
-                const token = localStorage.getItem('token');
-                const res = await axios.get('/api/upload-cv/latest', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setCv(res.data);
-            } catch (err) {
-                // No CV uploaded yet
-                setCv(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchCV();
+        const token = localStorage.getItem('token');
+        const headers = { Authorization: `Bearer ${token}` };
+
+        Promise.allSettled([
+            axios.get('/api/upload-cv/latest', { headers }),
+            axios.get('/api/upload-cv/suggestions', { headers })
+        ]).then(([cvRes, suggestionsRes]) => {
+            if (cvRes.status === 'fulfilled') setCv(cvRes.value.data);
+            if (suggestionsRes.status === 'fulfilled') setSuggestions(suggestionsRes.value.data || []);
+        }).finally(() => setLoading(false));
     }, []);
 
     const handleLogout = () => {
@@ -37,7 +33,6 @@ const Profile = () => {
     const displayName = cv?.structuredData?.name || user?.username || 'User Name';
     const displayEmail = cv?.structuredData?.email || user?.email || 'user@example.com';
 
-    // Skills is a raw text section — split into chips for display
     const rawSkills = cv?.structuredData?.skills || '';
     const displaySkills = rawSkills
         ? rawSkills.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0 && s.length < 40).slice(0, 10)
@@ -51,20 +46,12 @@ const Profile = () => {
             {/* Profile Info Card */}
             <Card className="glass-card" style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
-                    {/* Avatar */}
                     <div style={{
-                        width: '80px',
-                        height: '80px',
-                        borderRadius: '50%',
+                        width: '80px', height: '80px', borderRadius: '50%',
                         background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '2rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        flexShrink: 0,
-                        boxShadow: '0 0 20px rgba(224,142,254,0.3)'
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '2rem', fontWeight: 'bold', color: 'white',
+                        flexShrink: 0, boxShadow: '0 0 20px rgba(224,142,254,0.3)'
                     }}>
                         {displayName.charAt(0).toUpperCase()}
                     </div>
@@ -123,32 +110,62 @@ const Profile = () => {
 
                 <Card title="Quick Actions">
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <button
-                            className="btn-primary"
-                            onClick={() => navigate('/interview-setup')}
-                            style={{ width: '100%', padding: '12px' }}
-                        >
+                        <button className="btn-primary" onClick={() => navigate('/interview-setup')} style={{ width: '100%', padding: '12px' }}>
                             🎤 Start Interview
                         </button>
-                        <button
-                            className="btn-outline"
-                            onClick={() => navigate('/interview-setup')}
-                            style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}
-                        >
+                        <button className="btn-outline" onClick={() => navigate('/interview-setup')} style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}>
                             📄 Upload New CV
                         </button>
-                        <button
-                            className="btn-outline"
-                            onClick={() => navigate('/history')}
-                            style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}
-                        >
+                        <button className="btn-outline" onClick={() => navigate('/history')} style={{ width: '100%', padding: '10px', fontSize: '0.9rem' }}>
                             📜 View History
                         </button>
                     </div>
                 </Card>
             </div>
 
-            {/* Logout Button */}
+            {/* CV Suggestions Card */}
+            {cv && (
+                <Card title="CV Improvement Suggestions" style={{ marginBottom: '20px' }}>
+                    {suggestions.length === 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--on-surface-variant)', fontSize: '0.9rem' }}>
+                            <span style={{ fontSize: '1.4rem' }}>✓</span>
+                            <span>Your CV looks strong — no major issues detected based on your interview history.</span>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {suggestions.map((s, i) => (
+                                <div key={i} style={{
+                                    display: 'flex',
+                                    gap: '14px',
+                                    padding: '14px 16px',
+                                    borderRadius: '12px',
+                                    background: 'rgba(255,132,170,0.05)',
+                                    border: '1px solid rgba(255,132,170,0.15)'
+                                }}>
+                                    <div style={{
+                                        width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                                        background: 'rgba(255,132,170,0.12)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '0.75rem', fontWeight: '700', color: 'var(--tertiary, #ff84aa)'
+                                    }}>
+                                        {i + 1}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--tertiary, #ff84aa)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+                                            {s.section}
+                                        </div>
+                                        <div style={{ fontSize: '0.9rem', color: 'var(--on-surface-variant)', lineHeight: '1.5' }}>
+                                            {s.tip}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            {/* Sign Out */}
             <Card className="glass-card" style={{ border: '1px solid rgba(255, 132, 170, 0.2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
@@ -158,14 +175,9 @@ const Profile = () => {
                     <button
                         onClick={handleLogout}
                         style={{
-                            background: 'rgba(255, 132, 170, 0.1)',
-                            color: 'var(--tertiary)',
-                            border: '1px solid rgba(255, 132, 170, 0.3)',
-                            borderRadius: '0.75rem',
-                            padding: '10px 20px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem'
+                            background: 'rgba(255, 132, 170, 0.1)', color: 'var(--tertiary)',
+                            border: '1px solid rgba(255, 132, 170, 0.3)', borderRadius: '0.75rem',
+                            padding: '10px 20px', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem'
                         }}
                     >
                         🚪 Logout

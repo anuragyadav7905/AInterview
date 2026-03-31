@@ -35,6 +35,8 @@ const InterviewRoom = () => {
             const cvId = localStorage.getItem('cvId');
             const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
             const persona = prefs.persona || 'Professional';
+            const role = localStorage.getItem('interviewRole') || 'Software Engineer';
+            const difficulty = localStorage.getItem('interviewDifficulty') || 'Medium';
             setIsTyping(true);
 
             try {
@@ -42,7 +44,7 @@ const InterviewRoom = () => {
 
                 let resId;
                 try {
-                    const startRes = await axios.post('/api/interview/start', { cvId, persona }, {
+                    const startRes = await axios.post('/api/interview/start', { cvId, persona, role, difficulty }, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     resId = startRes.data.interviewId || startRes.data.id;

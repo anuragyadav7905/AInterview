@@ -8,7 +8,7 @@ const getGeminiInstance = () => {
     return new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'dummy_key');
 };
 
-const generateInterviewQuestion = async (cvData, previousQA, questionNumber, totalQuestions, persona = 'Professional') => {
+const generateInterviewQuestion = async (cvData, previousQA, questionNumber, totalQuestions, persona = 'Professional', role = 'Software Engineer', difficulty = 'Medium') => {
     try {
         const genAI = getGeminiInstance();
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -20,13 +20,19 @@ const generateInterviewQuestion = async (cvData, previousQA, questionNumber, tot
         };
         const personaDesc = personaDescriptions[persona] || 'a professional interviewer';
 
-        let promptText = `You are ${personaDesc}. `;
+        const difficultyGuidance = {
+            'Easy': 'Ask a straightforward, beginner-friendly question.',
+            'Medium': 'Ask a moderately challenging question appropriate for a mid-level candidate.',
+            'Hard': 'Ask a challenging, in-depth question that tests deep expertise.'
+        };
+        const difficultyHint = difficultyGuidance[difficulty] || difficultyGuidance['Medium'];
+
+        let promptText = `You are ${personaDesc} conducting a ${role} interview. ${difficultyHint} `;
         if (cvData) {
-             // Pass structuredData if provided
             const cvString = typeof cvData === 'string' ? cvData : JSON.stringify(cvData);
-            promptText += `The candidate has the following background: ${cvString}. Ask question ${questionNumber} of ${totalQuestions} based on their experience. `;
+            promptText += `The candidate has the following background: ${cvString}. Ask question ${questionNumber} of ${totalQuestions} tailored to their experience and the ${role} role. `;
         } else {
-            promptText += `Ask question ${questionNumber} of ${totalQuestions} as a general software engineer interview question. `;
+            promptText += `Ask question ${questionNumber} of ${totalQuestions} specifically relevant to the ${role} role. `;
         }
 
         if (previousQA && previousQA.length > 0) {
