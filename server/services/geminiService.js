@@ -24,10 +24,14 @@ const withRetry = async (fn, retries = 3, delayMs = 3000) => {
         try {
             return await withTimeout(fn);
         } catch (error) {
+            const msg = (error?.message || '').toLowerCase();
             const is429 = error?.status === 429 ||
-                error?.message?.includes('429') ||
-                error?.message?.toLowerCase().includes('too many requests');
-            const isTimeout = error?.message?.includes('timed out');
+                msg.includes('429') ||
+                msg.includes('too many requests') ||
+                msg.includes('resource_exhausted') ||
+                msg.includes('resource has been exhausted') ||
+                msg.includes('quota');
+            const isTimeout = msg.includes('timed out');
 
             if ((is429 || isTimeout) && attempt < retries) {
                 const wait = delayMs * attempt;

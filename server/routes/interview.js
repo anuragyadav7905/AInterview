@@ -126,7 +126,6 @@ router.post('/:id/answer', protect, async (req, res) => {
                     });
                 }
             } catch (evalError) {
-                // Fallback: interview continues even if Gemini evaluation fails
                 console.error('[answer] Evaluation failed, using fallback:', evalError.message);
                 evaluation = {
                     score: 5,
@@ -135,6 +134,27 @@ router.post('/:id/answer', protect, async (req, res) => {
                     improvement: 'Try to be more specific and structured in your response.',
                     modelAnswer: 'N/A'
                 };
+                // Save fallback score to DB so averageScore is never stuck at 0
+                try {
+                    latestQuestion.transcript = answer;
+                    latestQuestion.score = evaluation.score;
+                    latestQuestion.feedback = evaluation.feedback;
+                    latestQuestion.feedbackStrengths = [evaluation.strength];
+                    latestQuestion.feedbackImprovements = [evaluation.improvement];
+                    latestQuestion.answeredAt = new Date();
+                    latestQuestion.finalScore = evaluation.score;
+                    await latestQuestion.save();
+
+                    const allScored = await Question.find({ interview: interviewId, finalScore: { $exists: true, $ne: null } });
+                    if (allScored.length > 0) {
+                        const sum = allScored.reduce((acc, q) => acc + q.finalScore, 0);
+                        await Interview.findByIdAndUpdate(interviewId, {
+                            averageScore: Math.round((sum / allScored.length) * 10) / 10
+                        });
+                    }
+                } catch (saveError) {
+                    console.error('[answer] Failed to save fallback score:', saveError.message);
+                }
             }
         }
 
