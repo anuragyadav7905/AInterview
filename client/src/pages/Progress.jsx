@@ -8,6 +8,7 @@ import Card from '../components/Card';
 
 const Progress = () => {
     const [data, setData] = useState([]);
+    const [totalSessions, setTotalSessions] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -19,10 +20,12 @@ const Progress = () => {
                     setLoading(false);
                     return;
                 }
-                const res = await axios.get('/api/interview/progress', {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setData(res.data);
+                const [progressRes, historyRes] = await Promise.allSettled([
+                    axios.get('/api/interview/progress', { headers: { Authorization: `Bearer ${token}` } }),
+                    axios.get('/api/interview/history', { headers: { Authorization: `Bearer ${token}` } })
+                ]);
+                if (progressRes.status === 'fulfilled') setData(progressRes.value.data);
+                if (historyRes.status === 'fulfilled') setTotalSessions(historyRes.value.data.length);
             } catch (err) {
                 setError('Could not load progress data.');
             } finally {
@@ -32,10 +35,9 @@ const Progress = () => {
         fetchProgress();
     }, []);
 
-    const bestScore = data.length > 0 
-        ? Math.max(...data.map(d => d.score)) 
+    const bestScore = data.length > 0
+        ? Math.max(...data.map(d => d.score))
         : 0;
-    const totalSessions = data.length;
     const avgScore = data.length > 0
         ? (data.reduce((s, d) => s + d.score, 0) / data.length).toFixed(1)
         : 0;
@@ -94,29 +96,29 @@ const Progress = () => {
                     flexDirection: 'column', 
                     padding: '1.5rem' 
                 }}>
-                    <div style={{ 
-                        fontSize: '2.5rem', 
-                        fontWeight: 'bold', 
-                        color: 'var(--secondary)' 
+                    <div style={{
+                        fontSize: '2.5rem',
+                        fontWeight: 'bold',
+                        color: 'var(--secondary)'
                     }}>
-                        {bestScore}
+                        {data.length > 0 ? `${Math.round((bestScore / 10) * 100)}%` : 0}
                     </div>
                     <div style={{ color: 'var(--on-surface-variant)' }}>
                         Best Score
                     </div>
                 </Card>
 
-                <Card className="flex-center" style={{ 
-                    flex: 1, 
-                    flexDirection: 'column', 
-                    padding: '1.5rem' 
+                <Card className="flex-center" style={{
+                    flex: 1,
+                    flexDirection: 'column',
+                    padding: '1.5rem'
                 }}>
-                    <div style={{ 
-                        fontSize: '2.5rem', 
-                        fontWeight: 'bold', 
-                        color: 'var(--tertiary)' 
+                    <div style={{
+                        fontSize: '2.5rem',
+                        fontWeight: 'bold',
+                        color: 'var(--tertiary)'
                     }}>
-                        {avgScore}
+                        {data.length > 0 ? `${Math.round((avgScore / 10) * 100)}%` : 0}
                     </div>
                     <div style={{ color: 'var(--on-surface-variant)' }}>
                         Average Score
@@ -164,9 +166,10 @@ const Progress = () => {
                                     dataKey="date" 
                                     stroke="var(--on-surface-variant)" 
                                 />
-                                <YAxis 
-                                    stroke="var(--on-surface-variant)" 
-                                    domain={[0, 10]} 
+                                <YAxis
+                                    stroke="var(--on-surface-variant)"
+                                    domain={[0, 10]}
+                                    tickFormatter={(v) => `${Math.round((v / 10) * 100)}%`}
                                 />
                                 <CartesianGrid 
                                     strokeDasharray="3 3" 

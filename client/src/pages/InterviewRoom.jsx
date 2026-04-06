@@ -111,12 +111,21 @@ const InterviewRoom = () => {
         setIsTyping(true);
         setQuestionCount(prev => prev + 1);
 
+        const token = localStorage.getItem('token');
+        const realId = interviewId && !interviewId.startsWith('mock_') ? interviewId : null;
+
         // Terminate path if we hit max questions
         if (questionCount >= MAX_QUESTIONS - 1) {
             addMessage('ai', "Thank you for your time. That concludes our interview. Please wait while I generate your final summary report...");
-            const token = localStorage.getItem('token');
-            const realId = interviewId && !interviewId.startsWith('mock_') ? interviewId : null;
             if (realId) {
+                // Evaluate the last answer before completing
+                try {
+                    await axios.post('/api/interview/evaluate', { answer: text, interviewId }, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                } catch (e) {
+                    console.error('Could not evaluate last answer', e);
+                }
                 axios.post(`/api/interview/${realId}/complete`, {}, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).catch(e => console.error('Could not mark interview complete', e));
@@ -128,32 +137,39 @@ const InterviewRoom = () => {
         }
 
         try {
-            const token = localStorage.getItem('token');
-            const [evalRes, nextQRes] = await Promise.allSettled([
-                axios.post('/api/interview/evaluate', { answer: text, interviewId }, { headers: { Authorization: `Bearer ${token}` } }),
-                axios.post(`/api/interview/${interviewId}/questions`, {}, { headers: { Authorization: `Bearer ${token}` } })
-            ]);
+            // Evaluate FIRST (sequential, not parallel) to avoid race condition:
+            // if /questions ran in parallel it could create a new question before
+            // /evaluate queries for the latest one, causing the wrong question to be scored.
+            let evaluation = null;
+            try {
+                const evalRes = await axios.post('/api/interview/evaluate', { answer: text, interviewId }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                evaluation = evalRes.data.evaluation;
+            } catch (e) {
+                console.warn('Evaluation failed:', e);
+                evaluation = generateMockEval();
+            }
 
-            // Setup next Question
+            // Then generate the next question
+            let nextQuestion = generateMockQuestion(questionCount);
+            try {
+                const nextQRes = await axios.post(`/api/interview/${interviewId}/questions`, {}, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                nextQuestion = nextQRes.data.question || nextQuestion;
+            } catch (e) {
+                console.warn('Question generation failed:', e);
+            }
+
             setIsTyping(false);
-            const nextQuestion = nextQRes.status === 'fulfilled' && nextQRes.value.data.question 
-                ? nextQRes.value.data.question 
-                : generateMockQuestion(questionCount);
-            
             addMessage('ai', nextQuestion);
-
-            // Update user message with evaluation data silently in background
-            const evaluation = evalRes.status === 'fulfilled' && evalRes.value.data.evaluation
-                ? evalRes.value.data.evaluation
-                : generateMockEval();
-                
             setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: evaluation } : m));
 
         } catch (error) {
             console.error(error);
             setIsTyping(false);
             addMessage('ai', generateMockQuestion(questionCount));
-            
             setTimeout(() => {
                 setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: generateMockEval() } : m));
             }, 1000);
