@@ -4,7 +4,7 @@ const Interview = require('../models/Interview');
 const Question = require('../models/Question');
 const CV = require('../models/CV');
 const { protect } = require('../middleware/authMiddleware');
-const { generateInterviewQuestion, evaluateAnswer, transcribeWithGemini } = require('../services/geminiService');
+const { generateInterviewQuestion, evaluateAnswer, evaluateAndGenerateNext, transcribeWithGemini } = require('../services/geminiService');
 
 const router = express.Router();
 
@@ -98,13 +98,45 @@ router.post('/:id/answer', protect, async (req, res) => {
         const latestQuestion = existingQuestions[existingQuestions.length - 1] || null;
 
         let evaluation = null;
+        let nextQuestion = null;
 
-        // Evaluate the current answer if there's a question to evaluate against
         if (latestQuestion) {
-            try {
-                const cvContext = interview.cv ? JSON.stringify(interview.cv.structuredData) : null;
-                evaluation = await evaluateAnswer(latestQuestion.content, answer, cvContext);
+            const cvContext = interview.cv ? JSON.stringify(interview.cv.structuredData) : null;
+            const previousQA = existingQuestions
+                .map(q => `Q: ${q.content}\nA: ${q.transcript || '(No answer provided)'}`)
+                .join('\n\n');
+            const nextQuestionNumber = existingQuestions.length + 1;
 
+            try {
+                // Single Gemini call — evaluate answer + generate next question together
+                const geminiResult = await evaluateAndGenerateNext({
+                    question: latestQuestion.content,
+                    answer,
+                    cvContext,
+                    generateNext: !isLastQuestion,
+                    nextQuestionNumber,
+                    totalQuestions: 5,
+                    previousQA,
+                    persona: interview.style,
+                    role: interview.role,
+                    difficulty: interview.difficulty
+                });
+
+                evaluation = geminiResult.evaluation;
+                nextQuestion = geminiResult.nextQuestion || null;
+            } catch (geminiError) {
+                console.error('[answer] Gemini call failed, using fallback:', geminiError.message);
+                evaluation = {
+                    score: 5,
+                    feedback: 'Evaluation temporarily unavailable. Your answer has been recorded.',
+                    strength: 'Answer was provided.',
+                    improvement: 'Try to be more specific and structured in your response.',
+                    modelAnswer: 'N/A'
+                };
+            }
+
+            // Save evaluation to DB (always — real or fallback)
+            try {
                 latestQuestion.transcript = answer;
                 latestQuestion.score = evaluation.score;
                 latestQuestion.feedback = evaluation.feedback;
@@ -114,76 +146,48 @@ router.post('/:id/answer', protect, async (req, res) => {
                 latestQuestion.finalScore = evaluation.score;
                 await latestQuestion.save();
 
-                // Update interview averageScore
-                const allScored = await Question.find({
-                    interview: interviewId,
-                    finalScore: { $exists: true, $ne: null }
-                });
+                const allScored = await Question.find({ interview: interviewId, finalScore: { $exists: true, $ne: null } });
                 if (allScored.length > 0) {
                     const sum = allScored.reduce((acc, q) => acc + q.finalScore, 0);
                     await Interview.findByIdAndUpdate(interviewId, {
                         averageScore: Math.round((sum / allScored.length) * 10) / 10
                     });
                 }
-            } catch (evalError) {
-                console.error('[answer] Evaluation failed, using fallback:', evalError.message);
-                evaluation = {
-                    score: 5,
-                    feedback: 'Evaluation temporarily unavailable. Your answer has been recorded.',
-                    strength: 'Answer was provided.',
-                    improvement: 'Try to be more specific and structured in your response.',
-                    modelAnswer: 'N/A'
-                };
-                // Save fallback score to DB so averageScore is never stuck at 0
-                try {
-                    latestQuestion.transcript = answer;
-                    latestQuestion.score = evaluation.score;
-                    latestQuestion.feedback = evaluation.feedback;
-                    latestQuestion.feedbackStrengths = [evaluation.strength];
-                    latestQuestion.feedbackImprovements = [evaluation.improvement];
-                    latestQuestion.answeredAt = new Date();
-                    latestQuestion.finalScore = evaluation.score;
-                    await latestQuestion.save();
-
-                    const allScored = await Question.find({ interview: interviewId, finalScore: { $exists: true, $ne: null } });
-                    if (allScored.length > 0) {
-                        const sum = allScored.reduce((acc, q) => acc + q.finalScore, 0);
-                        await Interview.findByIdAndUpdate(interviewId, {
-                            averageScore: Math.round((sum / allScored.length) * 10) / 10
-                        });
-                    }
-                } catch (saveError) {
-                    console.error('[answer] Failed to save fallback score:', saveError.message);
-                }
+            } catch (saveError) {
+                console.error('[answer] Failed to save score to DB:', saveError.message);
             }
-        }
 
-        // Generate next question unless this was the last answer
-        let nextQuestion = null;
-        if (!isLastQuestion) {
-            try {
-                const questionNumber = existingQuestions.length + 1;
-                const cvData = interview.cv
-                    ? (interview.cv.structuredData || interview.cv.parsedText || null)
-                    : null;
-                const previousQA = existingQuestions
-                    .map(q => `Q: ${q.content}\nA: ${q.transcript || '(No answer provided)'}`)
-                    .join('\n\n');
-
-                nextQuestion = await generateInterviewQuestion(
-                    cvData, previousQA, questionNumber, 5,
-                    interview.style, interview.role, interview.difficulty
-                );
-
+            // Save next question to DB (real or fallback) so flow never breaks
+            if (!isLastQuestion) {
+                if (!nextQuestion) {
+                    const fallbackQuestions = [
+                        `Can you describe a challenging project in your ${interview.role} experience and how you overcame the obstacles?`,
+                        `How do you approach learning new technologies relevant to ${interview.role}?`,
+                        `Tell me about a time you had to collaborate with a difficult team member. How did you handle it?`,
+                        `What do you consider your biggest strength as a ${interview.role}, and how have you applied it?`
+                    ];
+                    nextQuestion = fallbackQuestions[(nextQuestionNumber - 1) % fallbackQuestions.length];
+                }
                 await Question.create({
                     interview: interviewId,
                     content: nextQuestion,
-                    order: questionNumber
+                    order: nextQuestionNumber
                 });
-            } catch (qError) {
-                console.error('[answer] Question generation failed:', qError.message);
-                // nextQuestion stays null — client falls back to mock question
             }
+        } else if (!isLastQuestion) {
+            // First message ("Yes let's start") — no question to evaluate, just generate Q1
+            const nextQuestionNumber = existingQuestions.length + 1;
+            const cvData = interview.cv ? (interview.cv.structuredData || interview.cv.parsedText || null) : null;
+            try {
+                nextQuestion = await generateInterviewQuestion(
+                    cvData, '', nextQuestionNumber, 5,
+                    interview.style, interview.role, interview.difficulty
+                );
+            } catch (e) {
+                console.error('[answer] Q1 generation failed:', e.message);
+                nextQuestion = `Tell me about yourself and your experience as a ${interview.role}.`;
+            }
+            await Question.create({ interview: interviewId, content: nextQuestion, order: nextQuestionNumber });
         }
 
         res.json({ evaluation, nextQuestion });

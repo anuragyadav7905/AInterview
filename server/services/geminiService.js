@@ -19,7 +19,7 @@ const withTimeout = (fn, ms = 25000) => {
 };
 
 // Retry wrapper — handles 429 rate limit and timeout errors
-const withRetry = async (fn, retries = 3, delayMs = 3000) => {
+const withRetry = async (fn, retries = 2, delayMs = 5000) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             return await withTimeout(fn);
@@ -118,6 +118,74 @@ Return raw JSON only, no markdown, no extra text.`;
     return parsed;
 };
 
+// Single Gemini call that evaluates the answer AND generates the next question together.
+// Pass generateNext=false for the last answer (evaluation only).
+const evaluateAndGenerateNext = async ({
+    question, answer, cvContext,
+    generateNext = true,
+    nextQuestionNumber, totalQuestions,
+    previousQA, persona = 'Professional', role = 'Software Engineer', difficulty = 'Medium'
+}) => {
+    const genAI = getGeminiInstance();
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
+    const personaDescriptions = {
+        'Professional': 'a professional and composed interviewer',
+        'Strict & Technical': 'a strict, highly technical interviewer who asks deep dive questions and expects precise answers',
+        'Friendly & Casual': 'a friendly and casual interviewer who creates a relaxed atmosphere while still being thorough'
+    };
+    const personaDesc = personaDescriptions[persona] || 'a professional interviewer';
+
+    const difficultyGuidance = {
+        'Easy': 'straightforward and beginner-friendly',
+        'Medium': 'moderately challenging for a mid-level candidate',
+        'Hard': 'challenging and in-depth to test deep expertise'
+    };
+    const diffHint = difficultyGuidance[difficulty] || difficultyGuidance['Medium'];
+
+    const cvString = cvContext
+        ? (typeof cvContext === 'string' ? cvContext : JSON.stringify(cvContext))
+        : null;
+
+    let prompt = `You are ${personaDesc} conducting a ${role} interview.\n\n`;
+    prompt += `QUESTION ASKED: ${question}\n`;
+    prompt += `CANDIDATE'S ANSWER: ${answer}\n`;
+    if (cvString) prompt += `CANDIDATE BACKGROUND: ${cvString}\n`;
+    if (previousQA) prompt += `PRIOR Q&A: ${previousQA}\n`;
+    prompt += `\nTask 1 — Evaluate the candidate's answer.\n`;
+
+    if (generateNext) {
+        prompt += `Task 2 — Generate the next interview question (question ${nextQuestionNumber} of ${totalQuestions}). It should be ${diffHint}. Do not repeat previous questions.\n`;
+        prompt += `\nReturn ONLY this JSON (no markdown, no extra text):\n`;
+        prompt += `{"evaluation":{"score":<1-10>,"feedback":"<2 sentences>","strength":"<1 sentence>","improvement":"<1 sentence>","modelAnswer":"<3 sentences>"},"nextQuestion":"<question text>"}`;
+    } else {
+        prompt += `\nReturn ONLY this JSON (no markdown, no extra text):\n`;
+        prompt += `{"evaluation":{"score":<1-10>,"feedback":"<2 sentences>","strength":"<1 sentence>","improvement":"<1 sentence>","modelAnswer":"<3 sentences>"}}`;
+    }
+
+    const result = await withRetry(() => model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4 }
+    }));
+
+    const raw = result.response.text().trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        console.error('[evaluateAndGenerateNext] No JSON in response:', raw.substring(0, 200));
+        throw new Error('Gemini did not return valid JSON');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!parsed.evaluation) throw new Error('Gemini response missing evaluation field');
+
+    parsed.evaluation.score = Math.min(10, Math.max(1, Number(parsed.evaluation.score) || 5));
+
+    return {
+        evaluation: parsed.evaluation,
+        nextQuestion: parsed.nextQuestion || null
+    };
+};
+
 const transcribeWithGemini = async (audioBase64, mimeType) => {
     const genAI = getGeminiInstance();
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -133,5 +201,6 @@ const transcribeWithGemini = async (audioBase64, mimeType) => {
 module.exports = {
     generateInterviewQuestion,
     evaluateAnswer,
+    evaluateAndGenerateNext,
     transcribeWithGemini
 };
