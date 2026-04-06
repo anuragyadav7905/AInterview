@@ -78,13 +78,22 @@ Do not include \`\`\`json or \`\`\` blocks, just raw JSON.`;
         });
         
         let rawResponse = result.response.text().trim();
-        if (rawResponse.startsWith('\`\`\`json')) {
-            rawResponse = rawResponse.replace(/^\`\`\`json/, '').replace(/\`\`\`$/, '').trim();
-        } else if (rawResponse.startsWith('\`\`\`')) {
-             rawResponse = rawResponse.replace(/^\`\`\`/, '').replace(/\`\`\`$/, '').trim();
+
+        // Extract JSON object regardless of surrounding text or code block markers
+        const jsonMatch = rawResponse.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            console.error('Gemini response had no JSON object:', rawResponse);
+            throw new Error('Gemini did not return valid JSON');
         }
 
-        return JSON.parse(rawResponse);
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        // Ensure score is a valid number 1-10
+        if (typeof parsed.score !== 'number' || parsed.score < 1 || parsed.score > 10) {
+            parsed.score = Math.min(10, Math.max(1, Number(parsed.score) || 5));
+        }
+
+        return parsed;
     } catch (error) {
         console.error("Error in evaluateAnswer:", error);
         throw error;

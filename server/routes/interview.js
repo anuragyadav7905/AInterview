@@ -131,6 +131,7 @@ router.post('/evaluate', protect, async (req, res) => {
         });
 
     } catch (error) {
+        console.error('[/evaluate] Error:', error.message);
         res.status(500).json({ message: error.message });
     }
 });
