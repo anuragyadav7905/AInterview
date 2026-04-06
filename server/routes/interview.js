@@ -79,57 +79,132 @@ router.post('/:id/questions', protect, async (req, res) => {
     }
 });
 
-// @desc    Evaluate Answer
+// @desc    Submit answer — evaluates current answer AND generates next question in one request
+// @route   POST /api/interview/:id/answer
+// @access  Private
+router.post('/:id/answer', protect, async (req, res) => {
+    try {
+        const { answer, isLastQuestion } = req.body;
+        const interviewId = req.params.id;
+
+        if (!answer || !answer.trim()) {
+            return res.status(400).json({ message: 'Answer is required.' });
+        }
+
+        const interview = await Interview.findOne({ _id: interviewId, user: req.user._id }).populate('cv');
+        if (!interview) return res.status(404).json({ message: 'Interview not found' });
+
+        const existingQuestions = await Question.find({ interview: interviewId }).sort({ order: 1 });
+        const latestQuestion = existingQuestions[existingQuestions.length - 1] || null;
+
+        let evaluation = null;
+
+        // Evaluate the current answer if there's a question to evaluate against
+        if (latestQuestion) {
+            try {
+                const cvContext = interview.cv ? JSON.stringify(interview.cv.structuredData) : null;
+                evaluation = await evaluateAnswer(latestQuestion.content, answer, cvContext);
+
+                latestQuestion.transcript = answer;
+                latestQuestion.score = evaluation.score;
+                latestQuestion.feedback = evaluation.feedback;
+                latestQuestion.feedbackStrengths = evaluation.strength ? [evaluation.strength] : [];
+                latestQuestion.feedbackImprovements = evaluation.improvement ? [evaluation.improvement] : [];
+                latestQuestion.answeredAt = new Date();
+                latestQuestion.finalScore = evaluation.score;
+                await latestQuestion.save();
+
+                // Update interview averageScore
+                const allScored = await Question.find({
+                    interview: interviewId,
+                    finalScore: { $exists: true, $ne: null }
+                });
+                if (allScored.length > 0) {
+                    const sum = allScored.reduce((acc, q) => acc + q.finalScore, 0);
+                    await Interview.findByIdAndUpdate(interviewId, {
+                        averageScore: Math.round((sum / allScored.length) * 10) / 10
+                    });
+                }
+            } catch (evalError) {
+                // Fallback: interview continues even if Gemini evaluation fails
+                console.error('[answer] Evaluation failed, using fallback:', evalError.message);
+                evaluation = {
+                    score: 5,
+                    feedback: 'Evaluation temporarily unavailable. Your answer has been recorded.',
+                    strength: 'Answer was provided.',
+                    improvement: 'Try to be more specific and structured in your response.',
+                    modelAnswer: 'N/A'
+                };
+            }
+        }
+
+        // Generate next question unless this was the last answer
+        let nextQuestion = null;
+        if (!isLastQuestion) {
+            try {
+                const questionNumber = existingQuestions.length + 1;
+                const cvData = interview.cv
+                    ? (interview.cv.structuredData || interview.cv.parsedText || null)
+                    : null;
+                const previousQA = existingQuestions
+                    .map(q => `Q: ${q.content}\nA: ${q.transcript || '(No answer provided)'}`)
+                    .join('\n\n');
+
+                nextQuestion = await generateInterviewQuestion(
+                    cvData, previousQA, questionNumber, 5,
+                    interview.style, interview.role, interview.difficulty
+                );
+
+                await Question.create({
+                    interview: interviewId,
+                    content: nextQuestion,
+                    order: questionNumber
+                });
+            } catch (qError) {
+                console.error('[answer] Question generation failed:', qError.message);
+                // nextQuestion stays null — client falls back to mock question
+            }
+        }
+
+        res.json({ evaluation, nextQuestion });
+
+    } catch (error) {
+        console.error('[/:id/answer] Error:', error.message);
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// @desc    Evaluate Answer (kept for backwards compatibility)
 // @route   POST /api/interview/evaluate
 // @access  Private
 router.post('/evaluate', protect, async (req, res) => {
     try {
         const { answer, interviewId } = req.body;
-
         const interview = await Interview.findById(interviewId).populate('cv');
-        if (!interview) {
-            return res.status(404).json({ message: 'Interview not found' });
-        }
+        if (!interview) return res.status(404).json({ message: 'Interview not found' });
 
-        // Find the last unanswered question
         const latestQuestion = await Question.findOne({ interview: interviewId }).sort({ order: -1 });
-        if (!latestQuestion) {
-             return res.status(400).json({ message: 'No pending question found to evaluate.' });
-        }
+        if (!latestQuestion) return res.status(400).json({ message: 'No pending question found to evaluate.' });
 
-        let cvContext = interview.cv ? JSON.stringify(interview.cv.structuredData) : null;
-        
+        const cvContext = interview.cv ? JSON.stringify(interview.cv.structuredData) : null;
         const evaluation = await evaluateAnswer(latestQuestion.content, answer, cvContext);
 
         latestQuestion.transcript = answer;
         latestQuestion.score = evaluation.score;
         latestQuestion.feedback = evaluation.feedback;
-        latestQuestion.feedbackStrengths = [evaluation.strength];
-        latestQuestion.feedbackImprovements = [evaluation.improvement];
+        latestQuestion.feedbackStrengths = evaluation.strength ? [evaluation.strength] : [];
+        latestQuestion.feedbackImprovements = evaluation.improvement ? [evaluation.improvement] : [];
         latestQuestion.answeredAt = new Date();
-        // Fallback for missing final score calculations if necessary
-        latestQuestion.finalScore = evaluation.score; 
-
+        latestQuestion.finalScore = evaluation.score;
         await latestQuestion.save();
 
-        // Recursively update interview averagescore
-        const allScored = await Question.find({ interview: interviewId, finalScore: { $exists: true } });
+        const allScored = await Question.find({ interview: interviewId, finalScore: { $exists: true, $ne: null } });
         if (allScored.length > 0) {
             const sum = allScored.reduce((acc, q) => acc + q.finalScore, 0);
             await Interview.findByIdAndUpdate(interviewId, { averageScore: Math.round((sum / allScored.length) * 10) / 10 });
         }
 
-        res.json({
-            message: 'Evaluation complete',
-            evaluation: {
-                 score: evaluation.score,
-                 strength: evaluation.strength,
-                 improvement: evaluation.improvement,
-                 feedback: evaluation.feedback,
-                 modelAnswer: evaluation.modelAnswer
-            }
-        });
-
+        res.json({ message: 'Evaluation complete', evaluation });
     } catch (error) {
         console.error('[/evaluate] Error:', error.message);
         res.status(500).json({ message: error.message });

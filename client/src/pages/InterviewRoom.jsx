@@ -9,6 +9,7 @@ const InterviewRoom = () => {
     // Core states
     const [messages, setMessages] = useState([]);
     const [isTyping, setIsTyping] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false); // prevents multiple submits
     const [inputMode, setInputMode] = useState('voice'); // 'voice' or 'text'
     const [textInput, setTextInput] = useState('');
     const [showQuickReplies, setShowQuickReplies] = useState(true);
@@ -103,8 +104,9 @@ const InterviewRoom = () => {
     };
 
     const handleUserSubmit = async (text) => {
-        if (!text.trim()) return;
-        
+        if (!text.trim() || isProcessing) return; // throttle — prevent multiple clicks
+
+        setIsProcessing(true);
         setShowQuickReplies(false);
         const thisMsgId = addMessage('user', text);
         setTextInput('');
@@ -113,66 +115,61 @@ const InterviewRoom = () => {
 
         const token = localStorage.getItem('token');
         const realId = interviewId && !interviewId.startsWith('mock_') ? interviewId : null;
-
-        // Terminate path if we hit max questions
-        if (questionCount >= MAX_QUESTIONS - 1) {
-            addMessage('ai', "Thank you for your time. That concludes our interview. Please wait while I generate your final summary report...");
-            if (realId) {
-                // Evaluate the last answer before completing
-                try {
-                    await axios.post('/api/interview/evaluate', { answer: text, interviewId }, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                } catch (e) {
-                    console.error('Could not evaluate last answer', e);
-                }
-                axios.post(`/api/interview/${realId}/complete`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                }).catch(e => console.error('Could not mark interview complete', e));
-            }
-            setTimeout(() => {
-                navigate(realId ? `/summary/${realId}` : '/interview-setup');
-            }, 3000);
-            return;
-        }
+        const isLastQuestion = questionCount >= MAX_QUESTIONS - 1;
 
         try {
-            // Evaluate FIRST (sequential, not parallel) to avoid race condition:
-            // if /questions ran in parallel it could create a new question before
-            // /evaluate queries for the latest one, causing the wrong question to be scored.
             let evaluation = null;
-            try {
-                const evalRes = await axios.post('/api/interview/evaluate', { answer: text, interviewId }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                evaluation = evalRes.data.evaluation;
-            } catch (e) {
-                console.warn('Evaluation failed:', e);
+            let nextQuestion = null;
+
+            if (realId) {
+                try {
+                    // Single merged API call — evaluate + generate next question in one request
+                    const res = await axios.post(
+                        `/api/interview/${realId}/answer`,
+                        { answer: text, isLastQuestion },
+                        { headers: { Authorization: `Bearer ${token}` }, timeout: 45000 }
+                    );
+                    evaluation = res.data.evaluation;
+                    nextQuestion = res.data.nextQuestion;
+                } catch (e) {
+                    console.error('Answer submission failed:', e.code === 'ECONNABORTED' ? 'Request timed out' : e.message);
+                    evaluation = generateMockEval();
+                }
+            } else {
                 evaluation = generateMockEval();
             }
 
-            // Then generate the next question
-            let nextQuestion = generateMockQuestion(questionCount);
-            try {
-                const nextQRes = await axios.post(`/api/interview/${interviewId}/questions`, {}, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                nextQuestion = nextQRes.data.question || nextQuestion;
-            } catch (e) {
-                console.warn('Question generation failed:', e);
+            setIsTyping(false);
+
+            if (isLastQuestion) {
+                addMessage('ai', "Thank you for your time. That concludes our interview. Please wait while I generate your final summary report...");
+                if (realId) {
+                    axios.post(`/api/interview/${realId}/complete`, {}, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }).catch(e => console.error('Could not mark interview complete', e));
+                }
+                if (evaluation) {
+                    setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: evaluation } : m));
+                }
+                setTimeout(() => navigate(realId ? `/summary/${realId}` : '/interview-setup'), 3000);
+                return;
             }
 
-            setIsTyping(false);
-            addMessage('ai', nextQuestion);
-            setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: evaluation } : m));
+            // Show next question (fallback to mock if Gemini failed)
+            addMessage('ai', nextQuestion || generateMockQuestion(questionCount));
+
+            // Attach evaluation feedback to user's message
+            if (evaluation) {
+                setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: evaluation } : m));
+            }
 
         } catch (error) {
-            console.error(error);
+            console.error('handleUserSubmit error:', error);
             setIsTyping(false);
             addMessage('ai', generateMockQuestion(questionCount));
-            setTimeout(() => {
-                setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: generateMockEval() } : m));
-            }, 1000);
+            setMessages(prev => prev.map(m => m.id === thisMsgId ? { ...m, eval: generateMockEval() } : m));
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -436,10 +433,11 @@ const InterviewRoom = () => {
                         {/* Mic Button */}
                         <button
                             onClick={toggleRecording}
+                            disabled={isProcessing}
                             style={{
                                 width: '80px', height: '80px', borderRadius: '50%',
-                                background: isRecording ? 'linear-gradient(135deg, #ff5252, #cc0000)' : 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                                border: 'none', color: '#fff', cursor: 'pointer',
+                                background: isProcessing ? '#555' : isRecording ? 'linear-gradient(135deg, #ff5252, #cc0000)' : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                                border: 'none', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 boxShadow: isRecording ? '0 0 30px rgba(255, 82, 82, 0.4)' : '0 10px 20px rgba(224, 142, 254, 0.3)',
                                 transition: 'all 0.3s', transform: isRecording ? 'scale(1.05)' : 'scale(1)'
@@ -464,12 +462,13 @@ const InterviewRoom = () => {
                                 resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: '1.5'
                             }}
                         />
-                        <button 
+                        <button
                             onClick={() => handleUserSubmit(textInput)}
+                            disabled={isProcessing}
                             style={{
                                 width: '60px', height: '60px', borderRadius: '16px', flexShrink: 0,
-                                background: 'linear-gradient(135deg, var(--primary), var(--secondary))',
-                                border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                                background: isProcessing ? '#555' : 'linear-gradient(135deg, var(--primary), var(--secondary))',
+                                border: 'none', color: '#fff', cursor: isProcessing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
                             }}
                             onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
                             onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}
